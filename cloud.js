@@ -77,26 +77,22 @@
 
     return true;
   }
-  // Progress is authoritative only for approved/reviewed worksheets.
-  async function progress(uid){
-    // Progress is derived from APPROVED worksheets so the student tracker and
-    // admin tracker use the exact same cloud source of truth. This also
-    // repairs older approved worksheets whose progress row was never created.
-    const rows=await worksheets(uid);
-    const approved=rows.filter(r=>{
+  // Progress is derived from approved worksheets. The caller can pass rows
+  // already fetched, avoiding a second Supabase query and keeping Student/Admin
+  // progress synchronized with My Submitted Worksheets.
+  function progressFromRows(rows,uid){
+    const list=(Array.isArray(rows)?rows:[]).filter(r=>{
+      if(uid && String(r.user_id)!==String(uid))return false;
       const s=String(r.status||'').toLowerCase();
-      return ['approved','reviewed','complete'].includes(s) || !!r.reviewed_at;
-    }).filter(r=>String(r.status||'').toLowerCase()!=='voided');
-
-    return approved.map(r=>{
-      const sub=r.submission||{};
+      return s!=='voided' && (['approved','reviewed','complete'].includes(s)||!!r.reviewed_at);
+    });
+    return list.map(r=>{
+      const sub=(r.submission&&typeof r.submission==='object')?r.submission:{};
       const answers=Array.isArray(sub.answers)?sub.answers:[];
       const correct=answers.filter(a=>a.status==='correct').length;
       const wrong=answers.filter(a=>a.status==='wrong').length;
       const na=answers.filter(a=>a.status==='not_answered').length;
       const total=Number(r.total||answers.length||0);
-      const answerTotal=correct+wrong+na;
-      const effectiveTotal=total||answerTotal;
       return {
         id:r.id,
         worksheet_id:r.id,
@@ -106,16 +102,22 @@
         correct,
         wrong,
         not_answered:na,
-        total:effectiveTotal,
-        accuracy:effectiveTotal?Math.round(correct*100/effectiveTotal):0,
+        total,
+        accuracy:total?Math.round(correct*100/total):0,
         elapsed:Number(r.elapsed||0),
         reviewed:true,
         operation:r.operation,
         range:r.range
       };
-    }).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    }).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
   }
+
+  async function progress(uid){
+    const rows=await worksheets(uid);
+    return progressFromRows(rows,uid);
+  }
+
   async function worksheets(uid){return api('/rest/v1/worksheets?select=*&user_id=eq.'+encodeURIComponent(uid)+'&order=submitted_at.desc')}
   async function allWorksheets(){return api('/rest/v1/worksheets?select=*&order=submitted_at.desc')}
-  window.KMT={load,login,logout,me,submit,pending,reviewed,progress,worksheets,allWorksheets,voidWorksheet,api};
+  window.KMT={load,login,logout,me,submit,pending,reviewed,progress,progressFromRows,worksheets,allWorksheets,voidWorksheet,api};
 })();
