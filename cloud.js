@@ -78,7 +78,43 @@
     return true;
   }
   // Progress is authoritative only for approved/reviewed worksheets.
-  async function progress(uid){return api('/rest/v1/progress?select=*&user_id=eq.'+encodeURIComponent(uid)+'&reviewed=eq.true&order=date.desc,id.desc')}
+  async function progress(uid){
+    // Progress is derived from APPROVED worksheets so the student tracker and
+    // admin tracker use the exact same cloud source of truth. This also
+    // repairs older approved worksheets whose progress row was never created.
+    const rows=await worksheets(uid);
+    const approved=rows.filter(r=>{
+      const s=String(r.status||'').toLowerCase();
+      return ['approved','reviewed','complete'].includes(s) || !!r.reviewed_at;
+    }).filter(r=>String(r.status||'').toLowerCase()!=='voided');
+
+    return approved.map(r=>{
+      const sub=r.submission||{};
+      const answers=Array.isArray(sub.answers)?sub.answers:[];
+      const correct=answers.filter(a=>a.status==='correct').length;
+      const wrong=answers.filter(a=>a.status==='wrong').length;
+      const na=answers.filter(a=>a.status==='not_answered').length;
+      const total=Number(r.total||answers.length||0);
+      const answerTotal=correct+wrong+na;
+      const effectiveTotal=total||answerTotal;
+      return {
+        id:r.id,
+        worksheet_id:r.id,
+        user_id:r.user_id,
+        user_name:r.user_name,
+        date:(r.submitted_at||'').slice(0,10),
+        correct,
+        wrong,
+        not_answered:na,
+        total:effectiveTotal,
+        accuracy:effectiveTotal?Math.round(correct*100/effectiveTotal):0,
+        elapsed:Number(r.elapsed||0),
+        reviewed:true,
+        operation:r.operation,
+        range:r.range
+      };
+    }).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  }
   async function worksheets(uid){return api('/rest/v1/worksheets?select=*&user_id=eq.'+encodeURIComponent(uid)+'&order=submitted_at.desc')}
   async function allWorksheets(){return api('/rest/v1/worksheets?select=*&order=submitted_at.desc')}
   window.KMT={load,login,logout,me,submit,pending,reviewed,progress,worksheets,allWorksheets,voidWorksheet,api};
