@@ -1,208 +1,41 @@
 <!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#4f46e5">
-<title>Poorvi Math — Login</title>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Kids Math Test — Login</title>
+<script src="./app-config.js"></script><script src="./cloud.js"></script>
 <style>
-*{box-sizing:border-box}
-body{margin:0;min-height:100vh;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:linear-gradient(135deg,#eef2ff,#f8fafc 55%,#ecfeff);color:#172033;display:flex;align-items:center;justify-content:center;padding:20px}
-.card{width:min(430px,100%);background:#fff;border:1px solid #e4e7ec;border-radius:26px;padding:28px;box-shadow:0 22px 65px rgba(16,24,40,.15);text-align:center}
-.icon{width:72px;height:72px;margin:0 auto 13px;border-radius:22px;background:#eef2ff;display:grid;place-items:center;font-size:36px}
-h1{font-size:27px;margin:0 0 4px}
-.sub{color:#667085;font-size:14px;margin-bottom:20px}
-.users{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:14px}
-.user{border:1px solid #d0d5dd;background:#fff;border-radius:13px;padding:10px 5px;cursor:pointer;font-weight:750;font-size:13px}
-.user span{display:block;font-size:23px;margin-bottom:3px}
-.user.selected{border-color:#4f46e5;background:#eef2ff;box-shadow:inset 0 0 0 1px #4f46e5}
-.pinwrap{position:relative;margin-top:7px}
-#pin{width:100%;border:1px solid #d0d5dd;border-radius:13px;padding:14px 50px 14px 16px;text-align:center;font-size:28px;letter-spacing:9px;outline:0}
-#pin:focus{border-color:#4f46e5;box-shadow:0 0 0 3px rgba(79,70,229,.12)}
-#toggle{position:absolute;right:10px;top:50%;transform:translateY(-50%);border:0;background:transparent;font-size:19px;cursor:pointer}
-#error{min-height:21px;color:#b42318;font-size:13px;margin:8px 0}
-#continue{width:100%;border:0;border-radius:13px;padding:14px;background:linear-gradient(135deg,#4f46e5,#6366f1);color:#fff;font-size:16px;font-weight:800;cursor:pointer}
-.links{margin-top:17px;font-size:12px}
-.links a{color:#667085;text-decoration:none}
-.links a:hover{color:#4f46e5}
-@media(max-width:420px){.users{grid-template-columns:1fr}.card{padding:23px}}
-</style>
-<style id="adminLoginChoiceStyle">
-.adminChoice{grid-column:1/-1}
-.adminChoice.selected{border-color:#7c3aed;background:#f5f3ff;box-shadow:inset 0 0 0 1px #7c3aed}
-</style><style id="kidsMathVersionBadge">
-#kidsMathVersionBadge{
-position:fixed;left:50%;bottom:8px;transform:translateX(-50%);
-z-index:2147483647;padding:4px 10px;border-radius:999px;
-font:700 11px/1.2 Arial,sans-serif;letter-spacing:.2px;
-background:rgba(255,255,255,.94);color:#475569;
-border:1px solid #cbd5e1;box-shadow:0 2px 8px rgba(0,0,0,.12);
-pointer-events:none;white-space:nowrap;
-}
-</style><script src="./app-config.js"></script>
-<script src="./supabase-config.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+:root{--ink:#142033;--muted:#667085;--line:#dfe5ee;--brand:#2563eb;--bg:#f3f7fc}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:20px;background:radial-gradient(circle at top,#eaf1ff,#f7f9fc 55%,#eef8f5);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial;color:var(--ink)}
+.card{width:min(500px,100%);background:#fff;border:1px solid var(--line);border-radius:28px;padding:28px;box-shadow:0 25px 80px rgba(16,24,40,.12)}
+.brand{text-align:center}.logo{font-size:50px}.brand h1{font-size:30px;margin:4px 0}.muted{color:var(--muted)}.users{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:24px 0 14px}
+.user{border:1px solid #cfd7e3;background:#fff;border-radius:18px;padding:15px;font-size:17px;font-weight:850;cursor:pointer}.user span{display:block;font-size:28px;margin-bottom:5px}.user.selected{border:2px solid var(--brand);background:#eef4ff;box-shadow:0 5px 18px #2563eb20}
+.pin{display:flex;gap:8px}.pin input{flex:1;border:1px solid #cfd7e3;border-radius:15px;padding:15px;text-align:center;font-size:28px;letter-spacing:10px}.eye{width:54px;border:1px solid #cfd7e3;background:#fff;border-radius:15px;font-size:20px}.go{width:100%;margin-top:12px;border:0;border-radius:15px;padding:15px;background:var(--brand);color:#fff;font-size:18px;font-weight:900;cursor:pointer}.go:disabled{opacity:.55}.error{min-height:24px;color:#b42318;text-align:center;margin:10px 0}.footer{text-align:center;font-size:11px;color:#7b8797;margin-top:18px}
+@media(max-width:420px){.card{padding:22px}.users{gap:8px}.user{padding:12px}}
+</style></head><body>
+<main class="card">
+<div class="brand"><div class="logo">📚</div><h1>Kids Math Test</h1><div class="muted">Secure cloud login • works on every device</div></div>
+<div class="users">
+<button class="user selected" data-id="poorvi"><span>👧</span>Poorvi</button>
+<button class="user" data-id="mahiram"><span>👦</span>Mahiram</button>
+<button class="user" data-id="guest"><span>👤</span>Guest</button>
+<button class="user" data-id="admin"><span>👑</span>Admin</button>
+</div>
+<div class="pin"><input id="pin" type="password" inputmode="numeric" maxlength="4" placeholder="••••" autocomplete="off"><button id="eye" class="eye" type="button">👁️</button></div>
+<div id="error" class="error"></div><button id="go" class="go">Continue →</button>
+<div class="footer">Production 2.0.0 • Supabase Auth</div>
+</main>
 <script>
 (function(){
-  function init(){
-    if(window.supabase && window.KIDS_MATH_SUPABASE && !window.kidsMathSupabase){
-      window.kidsMathSupabase=window.supabase.createClient(
-        window.KIDS_MATH_SUPABASE.url,
-        window.KIDS_MATH_SUPABASE.anonKey
-      );
-    }
-  }
-  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",init);
-  else init();
+let selected="poorvi";const pin=document.getElementById("pin"),err=document.getElementById("error"),go=document.getElementById("go");
+function choose(id){selected=id;err.textContent="";pin.value="";document.querySelectorAll(".user").forEach(b=>b.classList.toggle("selected",b.dataset.id===id));pin.focus()}
+document.querySelectorAll(".user").forEach(b=>b.onclick=()=>choose(b.dataset.id));
+document.getElementById("eye").onclick=()=>pin.type=pin.type==="password"?"text":"password";
+async function run(){
+ if(!/^\d{4}$/.test(pin.value)){err.textContent="Enter your 4-digit PIN.";return}
+ go.disabled=true;go.textContent="Signing in…";err.textContent="";
+ try{const u=await KMT.login(selected,pin.value);sessionStorage.setItem("poorviCurrentUser",u.id);sessionStorage.setItem("poorviDisplayName",u.name);sessionStorage.setItem("poorviRole",u.role);sessionStorage.setItem("poorviAuthMode","supabase");location.replace(u.role==="admin"?"admin.html":"index.html")}
+ catch(e){console.error(e);err.textContent=e.message||"Login failed. Check your PIN."}
+ finally{go.disabled=false;go.textContent="Continue →"}
+}
+go.onclick=run;pin.onkeydown=e=>{if(e.key==="Enter")run()};pin.focus();
 })();
-</script></head>
-<body>
-<main class="card">
-  <div class="icon">📚</div>
-  <h1>Math Practice</h1>
-  <div class="sub">Choose an account</div>
-  <div class="users">
-    <button class="user selected" data-id="guest"><span>👤</span>Guest</button>
-    <button class="user" data-id="poorvi"><span>👧</span>Poorvi</button>
-    <button class="user" data-id="mahiram"><span>👦</span>Mahiram</button>
-    <button class="user adminChoice" data-id="admin"><span>👑</span>Admin</button>
-  </div>
-  <div class="pinwrap">
-    <input id="pin" type="password" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="••••" aria-label="PIN">
-    <button id="toggle" type="button" aria-label="Show PIN">👁️</button>
-  </div>
-  <div id="error"></div>
-  <button id="continue" type="button">Continue →</button>
-  <div class="links"><a href="index.html">Open User Page</a> · <a href="admin.html">👑 Admin Login</a></div>
-</main>
-
-<div id="kidsMathVersionBadge" aria-label="Production version">Production v1.2.8</div><script id="kidsMathSupabasePinLoginV126">
-(function(){
-  let selected="guest";
-  const pin=document.getElementById("pin");
-  const error=document.getElementById("error");
-  const btn=document.getElementById("continue");
-
-  function setError(msg){ error.textContent=msg||""; }
-
-  function select(id){
-    selected=id;
-    setError("");
-    pin.value="";
-    document.querySelectorAll(".user").forEach(b=>{
-      b.classList.toggle("selected", b.dataset.id===id);
-    });
-    pin.focus();
-  }
-
-  document.querySelectorAll(".user").forEach(b=>{
-    b.addEventListener("click",()=>select(b.dataset.id));
-  });
-
-  document.getElementById("toggle").addEventListener("click",()=>{
-    pin.type=pin.type==="password"?"text":"password";
-    document.getElementById("toggle").textContent=
-      pin.type==="password"?"👁️":"🙈";
-  });
-
-  async function getClient(){
-    if(window.kidsMathSupabase)return window.kidsMathSupabase;
-    const c=window.KIDS_MATH_SUPABASE;
-    if(!c)throw new Error("Supabase configuration file did not load. Verify supabase-config.js is in the GitHub repository root.");
-    if(!window.supabase)throw new Error("Supabase library did not load. Check your internet connection or allow jsDelivr.");
-    window.kidsMathSupabase=window.supabase.createClient(c.url,c.anonKey);
-    return window.kidsMathSupabase;
-  }
-
-  async function login(){
-    const value=String(pin.value||"").trim();
-    if(!/^\d{4}$/.test(value)){
-      setError("Enter your 4-digit PIN.");
-      pin.focus();
-      return;
-    }
-
-    const old=btn.textContent;
-    btn.disabled=true;
-    btn.textContent="Signing in…";
-    setError("");
-
-    try{
-      const s=await getClient();
-
-      // Remove any previous account/session in this browser first.
-      await s.auth.signOut();
-
-      // Resolve the selected application user to the REAL Supabase Auth email.
-      const {data:emailData,error:emailError}=await s.rpc(
-        "get_auth_email",{p_app_user_id:selected}
-      );
-      if(emailError)throw new Error(
-        "Login setup is incomplete. Run supabase-v1.2.8-pin-login.sql in Supabase."
-      );
-      const email=String(emailData||"").trim();
-      if(!email)throw new Error(
-        "This user is not connected to a Supabase Auth account."
-      );
-
-      // The PIN is the Supabase Auth password for this account.
-      const {data,error:authError}=await s.auth.signInWithPassword({
-        email:email,
-        password:value
-      });
-      if(authError||!data.user){
-        throw new Error(
-          "Incorrect PIN. Make sure this user's Supabase Auth password is the 4-digit PIN."
-        );
-      }
-
-      // Verify the Auth UUID maps to the SAME selected app user.
-      const {data:map,error:mapError}=await s
-        .from("auth_users")
-        .select("app_user_id")
-        .eq("auth_user_id",data.user.id)
-        .single();
-
-      if(mapError||!map||map.app_user_id!==selected){
-        await s.auth.signOut();
-        throw new Error(
-          "Security check failed: this Auth account is mapped to a different user."
-        );
-      }
-
-      const {data:profile,error:profileError}=await s
-        .from("kids_users")
-        .select("id,display_name,role")
-        .eq("id",selected)
-        .single();
-
-      if(profileError||!profile){
-        await s.auth.signOut();
-        throw new Error("Kids Math Test user profile was not found.");
-      }
-
-      sessionStorage.clear();
-      sessionStorage.setItem("poorviCurrentUser",profile.id);
-      sessionStorage.setItem("poorviDisplayName",profile.display_name);
-      sessionStorage.setItem("poorviRole",profile.role);
-      sessionStorage.setItem("poorviAuthMode","supabase");
-      sessionStorage.setItem("poorviLoginAt",String(Date.now()));
-
-      location.replace(profile.role==="admin"?"admin.html":"index.html");
-    }catch(e){
-      console.error("Kids Math Test login:",e);
-      setError(e.message||"Login failed.");
-    }finally{
-      btn.disabled=false;
-      btn.textContent=old||"Continue →";
-    }
-  }
-
-  btn.addEventListener("click",login);
-  pin.addEventListener("keydown",e=>{
-    if(e.key==="Enter"){e.preventDefault();login();}
-  });
-  window.addEventListener("load",()=>pin.focus());
-})();
-</script></body>
-</html>
+</script></body></html>
