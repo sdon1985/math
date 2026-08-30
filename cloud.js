@@ -21,15 +21,64 @@
     return true;
   }
   async function reviewed(id,answers,meta){
-    const correct=answers.filter(a=>a.status==='correct').length,wrong=answers.filter(a=>a.status==='wrong').length,na=answers.filter(a=>a.status==='not_answered').length,total=answers.length;
+    const correct=answers.filter(a=>a.status==='correct').length,
+          wrong=answers.filter(a=>a.status==='wrong').length,
+          na=answers.filter(a=>a.status==='not_answered').length,
+          total=answers.length;
     const reviewMeta=Object.assign({},meta,{answers});
-    await api('/rest/v1/worksheets?id=eq.'+encodeURIComponent(id),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({status:'approved',reviewed_at:new Date().toISOString(),reviewed_by:S.user?.authId||null,review_version:2,submission:reviewMeta})});
-    // Replace the worksheet's progress row so corrections never accumulate duplicate progress.
-    await api('/rest/v1/progress?worksheet_id=eq.'+encodeURIComponent(id),{method:'DELETE',headers:{Prefer:'return=minimal'}});
-    await api('/rest/v1/progress',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({worksheet_id:id,user_id:meta.userId,user_name:meta.userName,date:meta.date,correct,wrong,not_answered:na,total,accuracy:total?Math.round(correct*100/total):0,elapsed:meta.elapsed||0,reviewed:true,operation:meta.operation,range:meta.range})});
+
+    // Save the review and VERIFY that Supabase actually changed the worksheet.
+    const saved=await api('/rest/v1/worksheets?id=eq.'+encodeURIComponent(id),{
+      method:'PATCH',
+      headers:{Prefer:'return=representation'},
+      body:JSON.stringify({
+        status:'approved',
+        reviewed_at:new Date().toISOString(),
+        reviewed_by:S.user?.authId||null,
+        review_version:2,
+        submission:reviewMeta
+      })
+    });
+
+    if(!Array.isArray(saved)||!saved[0]||
+       !['approved','reviewed','complete'].includes(String(saved[0].status||'').toLowerCase())){
+      throw Error('Review was not saved as Approved in the cloud database.');
+    }
+
+    // Replace this worksheet's progress row so edits never accumulate duplicates.
+    await api('/rest/v1/progress?worksheet_id=eq.'+encodeURIComponent(id),{
+      method:'DELETE',
+      headers:{Prefer:'return=minimal'}
+    });
+
+    const progressRow=await api('/rest/v1/progress',{
+      method:'POST',
+      headers:{Prefer:'return=representation'},
+      body:JSON.stringify({
+        worksheet_id:id,
+        user_id:meta.userId,
+        user_name:meta.userName,
+        date:meta.date,
+        correct,
+        wrong,
+        not_answered:na,
+        total,
+        accuracy:total?Math.round(correct*100/total):0,
+        elapsed:meta.elapsed||0,
+        reviewed:true,
+        operation:meta.operation,
+        range:meta.range
+      })
+    });
+
+    if(!Array.isArray(progressRow)||!progressRow[0]){
+      throw Error('Worksheet was approved, but its progress record was not saved.');
+    }
+
+    return true;
   }
   // Progress is authoritative only for approved/reviewed worksheets.
-  async function progress(uid){return api('/rest/v1/progress?select=*&user_id=eq.'+encodeURIComponent(uid)+'&reviewed=eq.true&order=date.asc')}
+  async function progress(uid){return api('/rest/v1/progress?select=*&user_id=eq.'+encodeURIComponent(uid)+'&reviewed=eq.true&order=date.desc,id.desc')}
   async function worksheets(uid){return api('/rest/v1/worksheets?select=*&user_id=eq.'+encodeURIComponent(uid)+'&order=submitted_at.desc')}
   async function allWorksheets(){return api('/rest/v1/worksheets?select=*&order=submitted_at.desc')}
   window.KMT={load,login,logout,me,submit,pending,reviewed,progress,worksheets,allWorksheets,voidWorksheet,api};

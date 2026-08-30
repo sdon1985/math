@@ -1,12 +1,12 @@
 (async function(){
 function escCloud(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;", "'":"&#39;"}[m]))}
 function opCloud(x){return ({addition:"➕ Addition",subtraction:"➖ Subtraction",multiplication:"✖️ Multiplication",division:"➗ Division",mixed:"🔢 Mixed"})[x]||x||"Worksheet"}
-function approvedStatus(s){return ["approved","reviewed","complete"].includes(String(s||"").toLowerCase())}
+function approvedStatus(s){return ["approved","reviewed","complete"].includes(String(s.status||s||"").toLowerCase())||!!s.reviewed_at}
 function last3Days(rows){const cutoff=new Date();cutoff.setHours(0,0,0,0);cutoff.setDate(cutoff.getDate()-2);return rows.filter(x=>x.submitted_at&&new Date(x.submitted_at)>=cutoff&&!['voided'].includes(String(x.status||'').toLowerCase()));}
 function renderCloudWorksheetStatus(uid,rows){
   const box=document.getElementById("worksheetStatus");if(!box)return;
   const list=last3Days(Array.isArray(rows)?rows:[]);
-  const pending=list.filter(x=>["pending","under_review"].includes(String(x.status||"").toLowerCase()));
+  const pending=list.filter(x=>!approvedStatus(x)&&["pending","under_review"].includes(String(x.status||"").toLowerCase()));
   const reviewed=list.filter(approvedStatus);
   let html='<div class="cloudStatusGrid"><div class="cloudStatusCard"><b>⏳ Under Review</b><span>'+pending.length+'</span></div><div class="cloudStatusCard"><b>✓ Approved</b><span>'+reviewed.length+'</span></div></div><div class="cloudWorksheetList">';
   if(!list.length)html+='<div class="muted">No submitted worksheets in the last 3 days.</div>';
