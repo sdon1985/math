@@ -122,7 +122,7 @@ body.test-focus-mode #sheet *{
 body.test-focus-mode ::selection{background:transparent}
 body.test-focus-mode ::-moz-selection{background:transparent}
 </style><style id="kidsMathAnswerBoxSize">
-/* Production v1.2.5: slightly larger Apple Pencil answer boxes */
+/* Production v1.2.6: slightly larger Apple Pencil answer boxes */
 #sheet .answerBox,
 #sheet .answer-box,
 #sheet .answerCanvas,
@@ -171,24 +171,8 @@ background:rgba(255,255,255,.94);color:#475569;
 border:1px solid #cbd5e1;box-shadow:0 2px 8px rgba(0,0,0,.12);
 pointer-events:none;white-space:nowrap;
 }
-</style><script src="supabase-config.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-window.addEventListener("DOMContentLoaded",function(){
- const c=window.KIDS_MATH_SUPABASE;
- if(c&&c.url&&!c.url.includes("YOUR-PROJECT")&&c.anonKey&&!c.anonKey.includes("YOUR_")){
-   window.kidsMathSupabase=supabase.createClient(c.url,c.anonKey);
- }
-});
-</script><script src="app-config.js"></script>
-<script src="supabase-config.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-if(window.KIDS_MATH_SUPABASE&&window.supabase){
-  window.kidsMathSupabase=window.supabase.createClient(
-    window.KIDS_MATH_SUPABASE.url,window.KIDS_MATH_SUPABASE.anonKey);
-}
-</script></head>
+</style><script src="app-config.js"></script>
+</head>
 
 <body><header id="userHeader" class="baselineUserHeader">
   <div>
@@ -1713,7 +1697,7 @@ document.addEventListener("DOMContentLoaded",setName);window.addEventListener("l
     update();
   });
 })();
-</script><div id="kidsMathVersionBadge" aria-label="Production version">Production v1.2.5</div><script id="kidsMathCentralSync">
+</script><div id="kidsMathVersionBadge" aria-label="Production version">Production v1.2.6</div><script id="kidsMathCentralSync">
 (function(){
 async function profile(){
  const sb=window.kidsMathSupabase;if(!sb)return null;

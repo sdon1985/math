@@ -39,24 +39,8 @@ background:rgba(255,255,255,.94);color:#475569;
 border:1px solid #cbd5e1;box-shadow:0 2px 8px rgba(0,0,0,.12);
 pointer-events:none;white-space:nowrap;
 }
-</style><script src="supabase-config.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-window.addEventListener("DOMContentLoaded",function(){
- const c=window.KIDS_MATH_SUPABASE;
- if(c&&c.url&&!c.url.includes("YOUR-PROJECT")&&c.anonKey&&!c.anonKey.includes("YOUR_")){
-   window.kidsMathSupabase=supabase.createClient(c.url,c.anonKey);
- }
-});
-</script><script src="app-config.js"></script>
-<script src="supabase-config.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-if(window.KIDS_MATH_SUPABASE&&window.supabase){
-  window.kidsMathSupabase=window.supabase.createClient(
-    window.KIDS_MATH_SUPABASE.url,window.KIDS_MATH_SUPABASE.anonKey);
-}
-</script></head>
+</style><script src="app-config.js"></script>
+</head>
 <body>
 <main class="card">
   <div class="icon">📚</div>
@@ -76,128 +60,135 @@ if(window.KIDS_MATH_SUPABASE&&window.supabase){
   <button id="continue" type="button">Continue →</button>
   <div class="links"><a href="index.html">Open User Page</a> · <a href="admin.html">👑 Admin Login</a></div>
 </main>
-<script>
+
+<div id="kidsMathVersionBadge" aria-label="Production version">Production v1.2.6</div><script id="kidsMathSupabasePinLoginV126">
 (function(){
-  const defaults=[
-    {id:"guest",name:"Guest",role:"user",pin:"0000",active:true},
-    {id:"poorvi",name:"Poorvi Dondeti",role:"user",pin:"1111",active:true},
-    {id:"mahiram",name:"Mahiram Dondeti",role:"user",pin:"2222",active:true},
-    {id:"admin",name:"Admin",role:"admin",pin:"2580",active:true}
-  ];
   let selected="guest";
-  const pin=document.getElementById("pin"), error=document.getElementById("error");
-  function getUsers(){
-    try{
-      const raw=localStorage.getItem("poorviMathUsers");
-      if(!raw){localStorage.setItem("poorviMathUsers",JSON.stringify(defaults));return defaults}
-      const arr=JSON.parse(raw);
-      return Array.isArray(arr)&&arr.length?arr:defaults;
-    }catch(e){return defaults}
-  }
+  const pin=document.getElementById("pin");
+  const error=document.getElementById("error");
+  const btn=document.getElementById("continue");
+
+  function setError(msg){ error.textContent=msg||""; }
+
   function select(id){
-    selected=id; error.textContent=""; pin.value="";
-    document.querySelectorAll(".user").forEach(b=>b.classList.toggle("selected",b.dataset.id===id));
+    selected=id;
+    setError("");
+    pin.value="";
+    document.querySelectorAll(".user").forEach(b=>{
+      b.classList.toggle("selected", b.dataset.id===id);
+    });
     pin.focus();
   }
-  document.querySelectorAll(".user").forEach(b=>b.onclick=()=>select(b.dataset.id));
-  document.getElementById("toggle").onclick=()=>{
+
+  document.querySelectorAll(".user").forEach(b=>{
+    b.addEventListener("click",()=>select(b.dataset.id));
+  });
+
+  document.getElementById("toggle").addEventListener("click",()=>{
     pin.type=pin.type==="password"?"text":"password";
-    document.getElementById("toggle").textContent=pin.type==="password"?"👁️":"🙈";
-  };
-  function login(){
-    const u=getUsers().find(x=>x.id===selected&&x.active!==false);
-    if(!u){error.textContent="Account is unavailable.";return}
-    if(String(pin.value||"")!==String(u.pin)){
-      error.textContent="Incorrect PIN. Please try again.";pin.select();return
-    }
-    // User identity is owned exclusively by login.html.
-    // Clear the previous identity before establishing the newly selected user.
-    sessionStorage.removeItem("poorviCurrentUser");
-    sessionStorage.removeItem("poorviActiveTest");
-    sessionStorage.setItem("poorviLoginAt",String(Date.now()));
-    if(u.role==="admin"){
-      sessionStorage.setItem("poorviAdminAuthenticated","1");
-      window.location.replace("admin.html");
-    }else{
-      sessionStorage.setItem("poorviCurrentUser",u.id);
-      localStorage.setItem("poorviLoggedInUser",u.id);
-      window.location.replace("index.html");
-    }
-  }
-  document.getElementById("continue").onclick=login;
-  pin.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();login()}};
-  window.addEventListener("load",()=>pin.focus());
-})();
-</script>
-<div id="kidsMathVersionBadge" aria-label="Production version">Production v1.2.5</div><script id="kidsMathSupabasePinLoginV124">
-/* v1.2.5 Auth UUID mapping is maintained in Supabase auth_users. */
-(function(){
-  const emailById={
-    poorvi:"poorvi@kidsmathtest.local",
-    mahiram:"mahiram@kidsmathtest.local",
-    guest:"guest@kidsmathtest.local",
-    admin:"admin@kidsmathtest.local"
-  };
-  async function sb(){
+    document.getElementById("toggle").textContent=
+      pin.type==="password"?"👁️":"🙈";
+  });
+
+  async function getClient(){
     if(window.kidsMathSupabase)return window.kidsMathSupabase;
-    if(window.supabase&&window.KIDS_MATH_SUPABASE){
-      window.kidsMathSupabase=window.supabase.createClient(
-        window.KIDS_MATH_SUPABASE.url,window.KIDS_MATH_SUPABASE.anonKey);
+    const c=window.KIDS_MATH_SUPABASE;
+    if(window.supabase&&c){
+      window.kidsMathSupabase=window.supabase.createClient(c.url,c.anonKey);
       return window.kidsMathSupabase;
     }
-    return null;
+    throw new Error("Cloud login is unavailable. Check Supabase configuration.");
   }
-  async function cloudLogin(id,pinValue){
-    const s=await sb();
-    if(!s)throw new Error("Cloud login is unavailable. Check Supabase configuration.");
-    const email=emailById[id];
-    if(!email)throw new Error("No cloud account is configured for this user.");
-    await s.auth.signOut();
-    const {data,error}=await s.auth.signInWithPassword({email,password:String(pinValue)});
-    if(error)throw new Error("Incorrect PIN or Supabase account/password is not configured for this user.");
-    const {data:m,error:me}=await s.from("auth_users").select("app_user_id").eq("auth_user_id",data.user.id).single();
-    if(me||!m)throw new Error("This account is not linked to Kids Math Test.");
-    if(m.app_user_id!==id)throw new Error("This login is linked to a different Kids Math Test user.");
-    const {data:u,error:ue}=await s.from("kids_users").select("id,display_name,role").eq("id",id).single();
-    if(ue||!u)throw new Error("Kids Math Test user profile was not found.");
-    sessionStorage.clear();
-    sessionStorage.setItem("poorviCurrentUser",u.id);
-    sessionStorage.setItem("poorviDisplayName",u.display_name);
-    sessionStorage.setItem("poorviRole",u.role);
-    sessionStorage.setItem("poorviAuthMode","supabase");
-    return u;
-  }
-  async function loginV124(){
-    const error=document.getElementById("error"),pin=document.getElementById("pin"),btn=document.getElementById("continue");
-    const users=JSON.parse(localStorage.getItem("poorviMathUsers")||"[]");
-    const local=Array.isArray(users)?users.find(x=>x.id===selected&&x.active!==false):null;
-    if(!local){error.textContent="Account is unavailable.";return}
+
+  async function login(){
     const value=String(pin.value||"").trim();
-    if(!/^\d{4}$/.test(value)){error.textContent="Enter your 4-digit PIN.";pin.focus();return}
-    const old=btn.textContent;btn.disabled=true;btn.textContent="Signing in…";error.textContent="";
+    if(!/^\d{4}$/.test(value)){
+      setError("Enter your 4-digit PIN.");
+      pin.focus();
+      return;
+    }
+
+    const old=btn.textContent;
+    btn.disabled=true;
+    btn.textContent="Signing in…";
+    setError("");
+
     try{
-      const u=await cloudLogin(selected,value);
-      location.replace(u.role==="admin"?"admin.html":"index.html");
-    }catch(e){
-      // Keep local login only when Supabase is genuinely unavailable. This
-      // preserves the app during a temporary network outage, but never
-      // silently changes the identity when cloud authentication succeeds.
-      if(!window.kidsMathSupabase){
-        if(value===String(local.pin||"")){
-          sessionStorage.clear();
-          sessionStorage.setItem("poorviCurrentUser",local.id);
-          sessionStorage.setItem("poorviDisplayName",local.name);
-          sessionStorage.setItem("poorviRole",local.role);
-          sessionStorage.setItem("poorviAuthMode","local-fallback");
-          location.replace(local.role==="admin"?"admin.html":"index.html");
-          return;
-        }
+      const s=await getClient();
+
+      // Remove any previous account/session in this browser first.
+      await s.auth.signOut();
+
+      // Resolve the selected application user to the REAL Supabase Auth email.
+      const {data:emailData,error:emailError}=await s.rpc(
+        "get_auth_email",{p_app_user_id:selected}
+      );
+      if(emailError)throw new Error(
+        "Login setup is incomplete. Run supabase-v1.2.6-pin-login.sql in Supabase."
+      );
+      const email=String(emailData||"").trim();
+      if(!email)throw new Error(
+        "This user is not connected to a Supabase Auth account."
+      );
+
+      // The PIN is the Supabase Auth password for this account.
+      const {data,error:authError}=await s.auth.signInWithPassword({
+        email:email,
+        password:value
+      });
+      if(authError||!data.user){
+        throw new Error(
+          "Incorrect PIN. Make sure this user's Supabase Auth password is the 4-digit PIN."
+        );
       }
-      error.textContent=e.message||"Login failed.";
-    }finally{btn.disabled=false;btn.textContent=old}
+
+      // Verify the Auth UUID maps to the SAME selected app user.
+      const {data:map,error:mapError}=await s
+        .from("auth_users")
+        .select("app_user_id")
+        .eq("auth_user_id",data.user.id)
+        .single();
+
+      if(mapError||!map||map.app_user_id!==selected){
+        await s.auth.signOut();
+        throw new Error(
+          "Security check failed: this Auth account is mapped to a different user."
+        );
+      }
+
+      const {data:profile,error:profileError}=await s
+        .from("kids_users")
+        .select("id,display_name,role")
+        .eq("id",selected)
+        .single();
+
+      if(profileError||!profile){
+        await s.auth.signOut();
+        throw new Error("Kids Math Test user profile was not found.");
+      }
+
+      sessionStorage.clear();
+      sessionStorage.setItem("poorviCurrentUser",profile.id);
+      sessionStorage.setItem("poorviDisplayName",profile.display_name);
+      sessionStorage.setItem("poorviRole",profile.role);
+      sessionStorage.setItem("poorviAuthMode","supabase");
+      sessionStorage.setItem("poorviLoginAt",String(Date.now()));
+
+      location.replace(profile.role==="admin"?"admin.html":"index.html");
+    }catch(e){
+      console.error("Kids Math Test login:",e);
+      setError(e.message||"Login failed.");
+    }finally{
+      btn.disabled=false;
+      btn.textContent=old||"Continue →";
+    }
   }
-  document.getElementById("continue").onclick=loginV124;
-  document.getElementById("pin").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();loginV124()}};
+
+  btn.addEventListener("click",login);
+  pin.addEventListener("keydown",e=>{
+    if(e.key==="Enter"){e.preventDefault();login();}
+  });
+  window.addEventListener("load",()=>pin.focus());
 })();
 </script></body>
 </html>
