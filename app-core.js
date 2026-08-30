@@ -1028,7 +1028,7 @@ window.changeUser=window.switchUser;
 })();
 
 
-/* KMT 2.1.1: erase -> write
+/* KMT 3.0.1: erase -> write
    Whenever an erase action is used, return the active tool to write mode.
 */
 (function () {

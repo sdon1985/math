@@ -10,7 +10,45 @@
   async function refresh(){if(!S.refresh)return false;try{const d=await auth('token?grant_type=refresh_token',{refresh_token:S.refresh});S.access=d.access_token;S.refresh=d.refresh_token||S.refresh;S.user=d.user;save();return true}catch(e){return false}}
   async function api(path,opt={}){const c=cfg();load();let h=Object.assign({apikey:c.supabaseAnonKey,Authorization:'Bearer '+(S.access||c.supabaseAnonKey),'Content-Type':'application/json'},opt.headers||{});let r=await fetch(c.supabaseUrl+path,Object.assign({},opt,{headers:h}));if(r.status===401&&await refresh()){h.Authorization='Bearer '+S.access;r=await fetch(c.supabaseUrl+path,Object.assign({},opt,{headers:h}))}const t=await r.text();if(!r.ok)throw Error(t||('API HTTP '+r.status));return t?JSON.parse(t):null}
   async function rpc(name,body){return api('/rest/v1/rpc/'+name,{method:'POST',body:JSON.stringify(body)})}
-  async function login(appId,pin){load();const email=await rpc('get_auth_email',{p_app_user_id:appId});if(!email)throw Error('This user is not linked to a Supabase Auth account.');const d=await auth('token?grant_type=password',{email:String(email),password:String(pin)});S.access=d.access_token;S.refresh=d.refresh_token;S.user=d.user;save();const map=await api('/rest/v1/auth_users?select=app_user_id&auth_user_id=eq.'+encodeURIComponent(d.user.id));if(!map[0]||map[0].app_user_id!==appId){await logout();throw Error('Security check failed: Auth account is mapped to a different user.')}const p=await api('/rest/v1/kids_users?select=id,display_name,role&id=eq.'+encodeURIComponent(appId));if(!p[0])throw Error('Kids Math Test user profile was not found.');S.user={authId:d.user.id,id:p[0].id,name:p[0].display_name,role:p[0].role,email:String(email)};save();return S.user}
+  async function login(appId,pin){
+    load();
+    const email=await rpc('get_auth_email',{p_app_user_id:appId});
+    if(!email)throw Error('This user is not linked to a Supabase Auth account.');
+    return finishLogin(email,pin,appId);
+  }
+  async function finishLogin(email,pin,expectedId){
+    const d=await auth('token?grant_type=password',{email:String(email),password:String(pin)});
+    S.access=d.access_token;S.refresh=d.refresh_token;S.user=d.user;save();
+    const map=await api('/rest/v1/auth_users?select=app_user_id&auth_user_id=eq.'+encodeURIComponent(d.user.id));
+    if(!map[0]||(expectedId&&map[0].app_user_id!==expectedId)){
+      await logout();throw Error('Security check failed: Auth account is not mapped correctly.');
+    }
+    const p=await api('/rest/v1/kids_users?select=id,display_name,role&id=eq.'+encodeURIComponent(map[0].app_user_id));
+    if(!p[0])throw Error('Kids Math Test user profile was not found.');
+    S.user={authId:d.user.id,id:p[0].id,name:p[0].display_name,role:p[0].role,email:String(email)};save();return S.user;
+  }
+  async function loginWithEmail(email,pin){return finishLogin(email.trim().toLowerCase(),pin,null)}
+  async function registerStudent(displayName,email,pin){
+    displayName=String(displayName||'').trim();
+    email=String(email||'').trim().toLowerCase();
+    if(displayName.length<2)throw Error('Enter the student name.');
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw Error('Enter a valid email address.');
+    if(!/^\d{4}$/.test(pin))throw Error('Student PIN must be 4 digits.');
+    const d=await auth('signup',{email,password:pin,data:{display_name:displayName,role:'student'}});
+    if(!d?.user?.id)throw Error('Registration did not create the Auth account.');
+    const authId=d.user.id;
+    // Generate a stable application ID; the database RPC creates both the
+    // student profile and the Auth -> app-user mapping atomically.
+    const base=displayName.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'').slice(0,24)||'student';
+    const appId=base+'_'+authId.replace(/-/g,'').slice(0,8);
+    await rpc('register_student',{p_auth_user_id:authId,p_app_user_id:appId,p_display_name:displayName});
+    if(d.access_token){
+      S.access=d.access_token;S.refresh=d.refresh_token||null;S.user=d.user;save();
+      const p=await api('/rest/v1/kids_users?select=id,display_name,role&id=eq.'+encodeURIComponent(appId));
+      if(p[0]){S.user={authId,id:appId,name:p[0].display_name,role:p[0].role,email};save();return S.user}
+    }
+    return {id:appId,name:displayName,role:'student',authId,email};
+  }
   async function logout(){load();try{if(S.access)await fetch(cfg().supabaseUrl+'/auth/v1/logout',{method:'POST',headers:{apikey:cfg().supabaseAnonKey,Authorization:'Bearer '+S.access}})}catch(e){}S.access=S.refresh=S.user=null;sessionStorage.removeItem(key)}
   async function me(){load();if(!S.access)return null;try{const p=await api('/rest/v1/kids_users?select=id,display_name,role&id=eq.'+encodeURIComponent(S.user?.id||''));return p[0]?{authId:S.user.authId,id:p[0].id,name:p[0].display_name,role:p[0].role}:null}catch(e){return null}}
   async function submit(s){const u=await me();if(!u)throw Error('Cloud session expired. Please login again.');const row={id:s.id,user_id:u.id,user_name:u.name,submitted_at:s.submitted_at||new Date().toISOString(),operation:s.operation,range:s.range,total:s.total,elapsed:s.elapsed,status:'pending',submission:s};await api('/rest/v1/worksheets',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(row)});return true}
@@ -119,5 +157,5 @@
 
   async function worksheets(uid){return api('/rest/v1/worksheets?select=*&user_id=eq.'+encodeURIComponent(uid)+'&order=submitted_at.desc')}
   async function allWorksheets(){return api('/rest/v1/worksheets?select=*&order=submitted_at.desc')}
-  window.KMT={load,login,logout,me,submit,pending,reviewed,progress,progressFromRows,worksheets,allWorksheets,voidWorksheet,api};
+  window.KMT={load,login,loginWithEmail,registerStudent,logout,me,submit,pending,reviewed,progress,progressFromRows,worksheets,allWorksheets,voidWorksheet,api};
 })();
