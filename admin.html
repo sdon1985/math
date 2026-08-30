@@ -123,6 +123,14 @@ window.addEventListener("DOMContentLoaded",function(){
    window.kidsMathSupabase=supabase.createClient(c.url,c.anonKey);
  }
 });
+</script><script src="app-config.js"></script>
+<script src="supabase-config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+if(window.KIDS_MATH_SUPABASE&&window.supabase){
+  window.kidsMathSupabase=window.supabase.createClient(
+    window.KIDS_MATH_SUPABASE.url,window.KIDS_MATH_SUPABASE.anonKey);
+}
 </script></head>
 <body><nav id="globalPageNav" class="globalPageNav">
   <a href="index.html">👤 User Page</a>
@@ -605,7 +613,7 @@ document.addEventListener("DOMContentLoaded",function(){
     if(changed)localStorage.setItem(key,JSON.stringify(list));
   }catch(e){}
 })();
-</script><div id="kidsMathVersionBadge" aria-label="Production version">Production v1.2.2</div><script id="kidsMathSupabaseAdminGuard">
+</script><div id="kidsMathVersionBadge" aria-label="Production version">Production v1.2.3</div><script id="kidsMathSupabaseAdminGuard">
 (function(){
   async function enforceAdmin(){
     if(sessionStorage.getItem("poorviAuthMode")!=="supabase")return;
@@ -618,6 +626,39 @@ document.addEventListener("DOMContentLoaded",function(){
     if(!u||u.role!=="admin"){alert("Admin access required.");await sb.auth.signOut();sessionStorage.clear();location.replace("login.html");return;}
   }
   window.addEventListener("load",()=>setTimeout(enforceAdmin,250));
+})();
+</script><script id="kidsMathCloudAdminV123">
+window.kidsMathCloudAdmin={
+ async pending(){
+  const s=window.kidsMathSupabase;if(!s)return[];
+  const {data,error}=await s.from("worksheets").select("*").eq("status","pending").order("submitted_at",{ascending:false});
+  if(error)throw error;return data||[];
+ },
+ async review(sub,stats){
+  const s=window.kidsMathSupabase;if(!s)return;
+  const {error}=await s.from("worksheets").update({status:"reviewed"}).eq("id",sub.id);
+  if(error)throw error;
+  const a=stats||{},total=a.total||sub.total||0,correct=a.correct||0,wrong=a.wrong||0,na=a.notAnswered||0;
+  const {error:pe}=await s.from("progress").upsert({
+    worksheet_id:sub.id,user_id:sub.userId,user_name:sub.userName||"Guest",
+    date:sub.date,correct,wrong,not_answered:na,total,
+    accuracy:total?Math.round(correct*100/total):0,elapsed:sub.elapsed||0,
+    operation:sub.operation,range:sub.range,reviewed:true
+  });
+  if(pe)throw pe;
+ }
+};
+(function(){
+ async function guard(){
+  if(sessionStorage.getItem("poorviAuthMode")!=="supabase")return;
+  const s=window.kidsMathSupabase;if(!s)return;
+  const {data:{user}}=await s.auth.getUser();
+  if(!user){location.replace("login.html");return;}
+  const {data:m}=await s.from("auth_users").select("app_user_id").eq("auth_user_id",user.id).single();
+  const {data:u}=m?await s.from("kids_users").select("*").eq("id",m.app_user_id).single():{data:null};
+  if(!u||u.role!=="admin"){await s.auth.signOut();sessionStorage.clear();location.replace("login.html");}
+ }
+ window.addEventListener("load",()=>setTimeout(guard,200));
 })();
 </script></body>
 </html>

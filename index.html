@@ -122,7 +122,7 @@ body.test-focus-mode #sheet *{
 body.test-focus-mode ::selection{background:transparent}
 body.test-focus-mode ::-moz-selection{background:transparent}
 </style><style id="kidsMathAnswerBoxSize">
-/* Production v1.2.2: slightly larger Apple Pencil answer boxes */
+/* Production v1.2.3: slightly larger Apple Pencil answer boxes */
 #sheet .answerBox,
 #sheet .answer-box,
 #sheet .answerCanvas,
@@ -180,6 +180,14 @@ window.addEventListener("DOMContentLoaded",function(){
    window.kidsMathSupabase=supabase.createClient(c.url,c.anonKey);
  }
 });
+</script><script src="app-config.js"></script>
+<script src="supabase-config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+if(window.KIDS_MATH_SUPABASE&&window.supabase){
+  window.kidsMathSupabase=window.supabase.createClient(
+    window.KIDS_MATH_SUPABASE.url,window.KIDS_MATH_SUPABASE.anonKey);
+}
 </script></head>
 
 <body><header id="userHeader" class="baselineUserHeader">
@@ -1705,7 +1713,7 @@ document.addEventListener("DOMContentLoaded",setName);window.addEventListener("l
     update();
   });
 })();
-</script><div id="kidsMathVersionBadge" aria-label="Production version">Production v1.2.2</div><script id="kidsMathCentralSync">
+</script><div id="kidsMathVersionBadge" aria-label="Production version">Production v1.2.3</div><script id="kidsMathCentralSync">
 (function(){
 async function profile(){
  const sb=window.kidsMathSupabase;if(!sb)return null;
@@ -1768,5 +1776,101 @@ document.addEventListener("visibilitychange",()=>{if(!document.hidden&&window.ki
     }
   }
   window.addEventListener("load",()=>setTimeout(enforce,250));
+})();
+</script><script id="kidsMathCloudSourceOfTruth">
+(function(){
+  async function sb(){
+    if(window.kidsMathSupabase)return window.kidsMathSupabase;
+    if(window.supabase&&window.KIDS_MATH_SUPABASE){
+      window.kidsMathSupabase=window.supabase.createClient(
+        window.KIDS_MATH_SUPABASE.url,window.KIDS_MATH_SUPABASE.anonKey);
+      return window.kidsMathSupabase;
+    }
+    return null;
+  }
+  async function profile(){
+    const s=await sb(); if(!s)return null;
+    const {data:{user}}=await s.auth.getUser(); if(!user)return null;
+    const {data:m,error:me}=await s.from("auth_users").select("app_user_id").eq("auth_user_id",user.id).maybeSingle();
+    if(me||!m)return null;
+    const {data:u,error:ue}=await s.from("kids_users").select("id,display_name,role").eq("id",m.app_user_id).maybeSingle();
+    if(ue||!u)return null;
+    return {authId:user.id,id:u.id,name:u.display_name,role:u.role};
+  }
+  async function pullProgress(){
+    const s=await sb(),u=await profile(); if(!s||!u)return [];
+    const {data,error}=await s.from("progress").select("*").eq("user_id",u.id).order("date",{ascending:true});
+    if(error)throw error;
+    const rows=(data||[]).map(x=>({
+      id:x.worksheet_id,date:x.date,n:x.correct,wrong:x.wrong,
+      notAnswered:x.not_answered,total:x.total,a:x.accuracy,et:x.elapsed,
+      reviewed:x.reviewed,operation:x.operation,range:x.range,
+      userId:x.user_id,userName:x.user_name
+    }));
+    if(typeof saveHist==="function")saveHist(rows,u.id);
+    return rows;
+  }
+  async function pullResults(){
+    const s=await sb(),u=await profile(); if(!s||!u)return [];
+    const {data,error}=await s.from("worksheets").select("*").eq("user_id",u.id).order("submitted_at",{ascending:false});
+    if(error)throw error;
+    return data||[];
+  }
+  async function submitWorksheet(sub){
+    const s=await sb(); if(!s)return;
+    const u=await profile(); if(!u)throw new Error("Authenticated user not found.");
+    const payload={
+      id:sub.id,user_id:u.id,user_name:u.name,
+      submitted_at:new Date().toISOString(),
+      operation:sub.operation,range:sub.range,total:sub.total,
+      elapsed:sub.elapsed,status:"pending",submission:sub
+    };
+    const {error}=await s.from("worksheets").upsert(payload);
+    if(error)throw error;
+  }
+  window.kidsMathCloud={
+    profile,pullProgress,pullResults,submitWorksheet,
+    async refresh(){
+      const u=await profile(); if(!u)return null;
+      sessionStorage.setItem("poorviCurrentUser",u.id);
+      sessionStorage.setItem("poorviDisplayName",u.name);
+      sessionStorage.setItem("poorviRole",u.role);
+      const rows=await pullProgress();
+      if(typeof renderWeek==="function")renderWeek();
+      if(typeof renderMonthly==="function")renderMonthly();
+      if(typeof renderYearly==="function")renderYearly();
+      return {user:u,progress:rows};
+    }
+  };
+})();
+</script><script id="kidsMathCloudSessionV123">
+(function(){
+ async function go(){
+  if(sessionStorage.getItem("poorviAuthMode")!=="supabase")return;
+  const s=window.kidsMathSupabase;if(!s)return;
+  const {data:{user}}=await s.auth.getUser();
+  if(!user){location.replace("login.html");return;}
+  const {data:m,error}=await s.from("auth_users").select("app_user_id").eq("auth_user_id",user.id).single();
+  if(error||!m){await s.auth.signOut();sessionStorage.clear();location.replace("login.html");return;}
+  const {data:u}=await s.from("kids_users").select("*").eq("id",m.app_user_id).single();
+  if(!u||u.role==="admin"){if(u&&u.role==="admin")location.replace("admin.html");return;}
+  sessionStorage.setItem("poorviCurrentUser",u.id);
+  sessionStorage.setItem("poorviDisplayName",u.display_name);
+  const w=document.getElementById("welcomeTitle");if(w)w.textContent="Welcome to "+u.display_name;
+  if(window.kidsMathCloud){try{await window.kidsMathCloud.refresh()}catch(e){console.warn(e)}}
+ }
+ window.addEventListener("load",()=>setTimeout(go,200));
+})();
+</script><script id="kidsMathCloudSubmitV123">
+(function(){
+ const old=window.makeSubmission;
+ if(typeof old==="function"&&!window.__cloudWrapped){
+  window.__cloudWrapped=true;
+  window.makeSubmission=function(){
+   const s=old.apply(this,arguments);
+   if(window.kidsMathCloud)window.kidsMathCloud.submitWorksheet(s).catch(e=>console.warn("Cloud submit:",e));
+   return s;
+  };
+ }
 })();
 </script></body></html>

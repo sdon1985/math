@@ -48,6 +48,14 @@ window.addEventListener("DOMContentLoaded",function(){
    window.kidsMathSupabase=supabase.createClient(c.url,c.anonKey);
  }
 });
+</script><script src="app-config.js"></script>
+<script src="supabase-config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+if(window.KIDS_MATH_SUPABASE&&window.supabase){
+  window.kidsMathSupabase=window.supabase.createClient(
+    window.KIDS_MATH_SUPABASE.url,window.KIDS_MATH_SUPABASE.anonKey);
+}
 </script></head>
 <body>
 <main class="card">
@@ -121,54 +129,36 @@ window.addEventListener("DOMContentLoaded",function(){
   window.addEventListener("load",()=>pin.focus());
 })();
 </script>
-<div id="kidsMathVersionBadge" aria-label="Production version">Production v1.2.2</div><script id="kidsMathSupabaseRealLogin">
+<div id="kidsMathVersionBadge" aria-label="Production version">Production v1.2.3</div><script id="kidsMathSupabaseRealLogin">
 (function(){
-  function ready(){
-    return window.kidsMathSupabase ||
-      (window.supabase && window.KIDS_MATH_SUPABASE
-       ? (window.kidsMathSupabase=window.supabase.createClient(
-            window.KIDS_MATH_SUPABASE.url,window.KIDS_MATH_SUPABASE.anonKey))
-       : null);
-  }
-  async function loginWithSupabase(email,password){
-    const sb=ready();
-    if(!sb) throw new Error("Supabase is not configured. Check supabase-config.js.");
-    const {data,error}=await sb.auth.signInWithPassword({email,password});
-    if(error) throw error;
-    const {data:map,error:me}=await sb.from("auth_users")
-      .select("app_user_id").eq("auth_user_id",data.user.id).single();
-    if(me) throw new Error("This login is not linked to a Kids Math Test user.");
-    const {data:profile,error:pe}=await sb.from("kids_users")
-      .select("*").eq("id",map.app_user_id).single();
-    if(pe) throw pe;
-    sessionStorage.setItem("poorviCurrentUser",profile.id);
-    sessionStorage.setItem("poorviAuthMode","supabase");
-    sessionStorage.setItem("poorviDisplayName",profile.display_name);
-    sessionStorage.setItem("poorviRole",profile.role);
-    return profile;
-  }
-
-  async function handle(e){
-    const form=e.target;
-    if(!form || form.tagName!=="FORM")return;
-    const email=form.querySelector('input[type="email"],input[name="email"]');
-    const password=form.querySelector('input[type="password"],input[name="password"]');
-    if(!email||!password)return;
-    e.preventDefault(); e.stopImmediatePropagation();
-    const btn=form.querySelector('button[type="submit"]');
-    const old=btn&&btn.textContent;
-    if(btn){btn.disabled=true;btn.textContent="Signing in...";}
-    try{
-      const p=await loginWithSupabase(email.value.trim(),password.value);
-      location.href=p.role==="admin"?"admin.html":"index.html";
-    }catch(err){
-      alert(err.message||"Login failed.");
-      try{if(window.kidsMathSupabase)await window.kidsMathSupabase.auth.signOut()}catch(_){}
-    }finally{
-      if(btn){btn.disabled=false;btn.textContent=old||"Login";}
-    }
-  }
-  document.addEventListener("submit",handle,true);
+ async function login(e){
+  const form=e.target;if(!form||form.tagName!=="FORM")return;
+  const email=form.querySelector('input[type="email"],input[name="email"]');
+  const password=form.querySelector('input[type="password"],input[name="password"]');
+  if(!email||!password)return;
+  e.preventDefault();e.stopImmediatePropagation();
+  const b=form.querySelector('button[type="submit"]'),old=b&&b.textContent;
+  if(b){b.disabled=true;b.textContent="Signing in...";}
+  try{
+   const s=window.kidsMathSupabase;
+   if(!s)throw new Error("Supabase is not configured.");
+   await s.auth.signOut();
+   const {data,error}=await s.auth.signInWithPassword({email:email.value.trim(),password:password.value});
+   if(error)throw error;
+   const {data:m,error:me}=await s.from("auth_users").select("app_user_id").eq("auth_user_id",data.user.id).single();
+   if(me)throw new Error("This account is not linked to Kids Math Test.");
+   const {data:u,error:ue}=await s.from("kids_users").select("*").eq("id",m.app_user_id).single();
+   if(ue)throw ue;
+   sessionStorage.clear();
+   sessionStorage.setItem("poorviCurrentUser",u.id);
+   sessionStorage.setItem("poorviDisplayName",u.display_name);
+   sessionStorage.setItem("poorviRole",u.role);
+   sessionStorage.setItem("poorviAuthMode","supabase");
+   location.replace(u.role==="admin"?"admin.html":"index.html");
+  }catch(err){alert(err.message||"Login failed.");}
+  finally{if(b){b.disabled=false;b.textContent=old||"Login";}}
+ }
+ document.addEventListener("submit",login,true);
 })();
 </script></body>
 </html>
