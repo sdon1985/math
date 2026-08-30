@@ -71,7 +71,7 @@ select,input{width:100%;padding:12px;border:1px solid #cdd6e2;border-radius:12px
 </head><body>
 <div class="page">
 <header class="topbar">
-  <div><div class="eyebrow">KIDS MATH TEST • PRODUCTION 2.0.4</div><div id="welcomeTitle">Welcome</div><div class="muted">Your private learning dashboard</div></div>
+  <div><div class="eyebrow">KIDS MATH TEST • PRODUCTION 2.0.5</div><div id="welcomeTitle">Welcome</div><div class="muted">Your private learning dashboard</div></div>
   <div class="top-actions">
     <button class="btn secondary" id="switchUserBtn">⇄ Switch User</button>
     <a class="btn secondary" href="admin.html">👑 Admin</a>
@@ -146,7 +146,115 @@ select,input{width:100%;padding:12px;border:1px solid #cdd6e2;border-radius:12px
 </main>
 </div>
 <div id="modal" class="overlay hidden"><div class="modal"><h2>🔒 Parent Access</h2><div class="muted">Enter parent PIN.</div><input id="pin" type="password" inputmode="numeric"><div class="actions" style="margin-top:10px"><button class="btn primary" id="unlock">Unlock</button><button class="btn secondary" id="cancel">Cancel</button></div></div></div>
-<div class="footer">Production 2.0.4 • Supabase Cloud • Cross-device</div>
+<div class="footer">Production 2.0.5 • Supabase Cloud • Cross-device</div>
 
 <script src="./app-core.js"></script><script src="./session-nav.js"></script><script src="./cloud-bootstrap.js"></script>
+
+<!-- KMT 2.0.5 STUDENT REVIEW/PROGRESS -->
+<section id="kmtStudentCloudPanel" class="kmt-cloud-panel" aria-live="polite">
+  <div class="kmt-panel-title">My Progress & Recent Worksheets</div>
+  <div id="kmtProgressSummary" class="kmt-progress-summary">Loading cloud progress…</div>
+  <div id="kmtRecentWorksheets" class="kmt-recent-worksheets">Loading recent worksheets…</div>
+  <div id="kmtReviewDetails" class="kmt-review-details" hidden></div>
+</section>
+<style>
+.kmt-cloud-panel{margin:18px 0;padding:16px;border:1px solid #ddd;border-radius:14px;background:#fff}
+.kmt-panel-title{font-size:1.15rem;font-weight:700;margin-bottom:10px}
+.kmt-progress-summary{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.kmt-stat{padding:8px 10px;border:1px solid #ddd;border-radius:10px;background:#fafafa}
+.kmt-recent-worksheets{display:grid;gap:8px}
+.kmt-sheet-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px;border:1px solid #e2e2e2;border-radius:10px}
+.kmt-status-review{font-weight:700}
+.kmt-status-approved{font-weight:700}
+.kmt-status-voided{font-weight:700}
+.kmt-mistakes{margin-top:10px;border-top:1px solid #ddd;padding-top:10px}
+.kmt-mistake{display:flex;gap:12px;justify-content:space-between;padding:6px 0}
+@media(max-width:700px){.kmt-sheet-row{align-items:flex-start;flex-direction:column}}
+</style>
+<script>
+(function(){
+  function appUserId(){
+    return window.KMT_USER_ID || window.currentUserId ||
+      (window.KIDS_MATH_SESSION && (window.KIDS_MATH_SESSION.appUserId || window.KIDS_MATH_SESSION.userId)) ||
+      localStorage.getItem('kmt_app_user_id') || '';
+  }
+  function supa(){
+    return window.supabaseClient || window.supabase || window.KMT_SUPABASE || null;
+  }
+  function esc(v){
+    return String(v ?? '').replace(/[&<>"']/g,function(c){
+      return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
+    });
+  }
+  function recent3Days(){
+    var d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()-2);
+    return d.toISOString();
+  }
+  async function loadStudentCloud(){
+    var uid=appUserId(), db=supa();
+    if(!uid || !db) return;
+    try{
+      var w=await db.from('worksheets')
+        .select('*')
+        .eq('user_id',uid)
+        .gte('submitted_at',recent3Days())
+        .neq('status','voided')
+        .order('submitted_at',{ascending:false});
+      var p=await db.from('progress')
+        .select('*').eq('user_id',uid)
+        .order('date',{ascending:false});
+      if(w.error) throw w.error;
+      var rows=w.data||[], prog=p.data||[];
+      var sum=prog.reduce(function(a,x){
+        a.correct+=(+x.correct||0); a.wrong+=(+x.wrong||0);
+        a.na+=(+x.not_answered||0); a.total+=(+x.total||0); return a;
+      },{correct:0,wrong:0,na:0,total:0});
+      var acc=sum.total ? Math.round(sum.correct/sum.total*100):0;
+      document.getElementById('kmtProgressSummary').innerHTML =
+        '<span class="kmt-stat">Worksheets: '+prog.length+'</span>'+
+        '<span class="kmt-stat">Correct: '+sum.correct+'</span>'+
+        '<span class="kmt-stat">Wrong: '+sum.wrong+'</span>'+
+        '<span class="kmt-stat">Not Answered: '+sum.na+'</span>'+
+        '<span class="kmt-stat">Accuracy: '+acc+'%</span>';
+      var box=document.getElementById('kmtRecentWorksheets');
+      box.innerHTML=rows.length?rows.map(function(x){
+        var approved=['approved','reviewed','complete'].includes(String(x.status||'').toLowerCase());
+        var label=approved?'Approved':'Under Parent Review';
+        var btn=approved?'<button type="button" data-review-id="'+esc(x.id)+'">View Review</button>':'';
+        return '<div class="kmt-sheet-row"><div><strong>'+esc(x.operation||'Worksheet')+
+          '</strong> · '+esc(x.submitted_at||'')+'</div><div><span class="kmt-status-'+
+          (approved?'approved':'review')+'">'+label+'</span> '+btn+'</div></div>';
+      }).join(''):'No worksheets submitted in the last 3 days.';
+      box.querySelectorAll('[data-review-id]').forEach(function(b){
+        b.addEventListener('click',function(){showReview(b.getAttribute('data-review-id'),rows);});
+      });
+    }catch(e){
+      document.getElementById('kmtRecentWorksheets').textContent='Cloud progress unavailable.';
+      console.error(e);
+    }
+  }
+  function showReview(id,rows){
+    var x=rows.find(function(r){return String(r.id)===String(id)});
+    var box=document.getElementById('kmtReviewDetails'); if(!box||!x)return;
+    var sub=x.submission||{};
+    var answers=Array.isArray(sub.questions)?sub.questions:(Array.isArray(sub.answers)?sub.answers:[]);
+    var mistakes=answers.filter(function(q){
+      var s=String(q.status||q.result||'').toLowerCase();
+      return s==='wrong'||q.correct===false||q.isCorrect===false;
+    });
+    box.hidden=false;
+    box.innerHTML='<div class="kmt-mistakes"><strong>Review — Mistakes Only</strong>'+
+      (mistakes.length?mistakes.map(function(q){
+        return '<div class="kmt-mistake"><span>'+esc(q.question||q.prompt||'Question')+
+          '</span><span>Your: <b>'+esc(q.answer||q.userAnswer||'')+
+          '</b> · Correct: <b>'+esc(q.correctAnswer||q.expected||q.solution||'')+'</b></span></div>';
+      }).join(''):'<p>🎉 Perfect! No mistakes in this worksheet.</p>')+'</div>';
+    box.scrollIntoView({behavior:'smooth',block:'nearest'});
+  }
+  window.KMT_loadStudentCloud=loadStudentCloud;
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',loadStudentCloud);
+  else loadStudentCloud();
+})();
+</script>
+
 </body></html>

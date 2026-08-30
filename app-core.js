@@ -1026,3 +1026,38 @@ window.location.replace("login.html");
 };
 window.changeUser=window.switchUser;
 })();
+
+
+/* KMT 2.0.5: erase -> write
+   Whenever an erase action is used, return the active tool to write mode.
+*/
+(function () {
+  function activateWriteMode() {
+    var candidates = document.querySelectorAll(
+      '[data-tool="write"], [data-mode="write"], #writeBtn, #penBtn, #writeMode, .write-btn'
+    );
+    candidates.forEach(function (el) {
+      try { el.click(); } catch (e) {}
+      el.classList.add('active', 'selected');
+      el.setAttribute('aria-pressed', 'true');
+    });
+    document.querySelectorAll(
+      '[data-tool="erase"], [data-mode="erase"], #eraseBtn, #eraserBtn, #eraseMode, .erase-btn'
+    ).forEach(function (el) {
+      el.classList.remove('active', 'selected');
+      el.setAttribute('aria-pressed', 'false');
+    });
+    window.KMT_ACTIVE_TOOL = 'write';
+  }
+
+  document.addEventListener('click', function (ev) {
+    var el = ev.target && ev.target.closest ? ev.target.closest(
+      '[data-tool="erase"], [data-mode="erase"], #eraseBtn, #eraserBtn, #eraseMode, .erase-btn'
+    ) : null;
+    if (el) {
+      setTimeout(activateWriteMode, 0);
+    }
+  }, true);
+
+  window.KMT_activateWriteMode = activateWriteMode;
+})();
