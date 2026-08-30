@@ -39,8 +39,23 @@ background:rgba(255,255,255,.94);color:#475569;
 border:1px solid #cbd5e1;box-shadow:0 2px 8px rgba(0,0,0,.12);
 pointer-events:none;white-space:nowrap;
 }
-</style><script src="app-config.js"></script>
-</head>
+</style><script src="./app-config.js"></script>
+<script src="./supabase-config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function(){
+  function init(){
+    if(window.supabase && window.KIDS_MATH_SUPABASE && !window.kidsMathSupabase){
+      window.kidsMathSupabase=window.supabase.createClient(
+        window.KIDS_MATH_SUPABASE.url,
+        window.KIDS_MATH_SUPABASE.anonKey
+      );
+    }
+  }
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",init);
+  else init();
+})();
+</script></head>
 <body>
 <main class="card">
   <div class="icon">📚</div>
@@ -61,7 +76,7 @@ pointer-events:none;white-space:nowrap;
   <div class="links"><a href="index.html">Open User Page</a> · <a href="admin.html">👑 Admin Login</a></div>
 </main>
 
-<div id="kidsMathVersionBadge" aria-label="Production version">Production v1.2.6</div><script id="kidsMathSupabasePinLoginV126">
+<div id="kidsMathVersionBadge" aria-label="Production version">Production v1.2.7</div><script id="kidsMathSupabasePinLoginV126">
 (function(){
   let selected="guest";
   const pin=document.getElementById("pin");
@@ -90,14 +105,13 @@ pointer-events:none;white-space:nowrap;
       pin.type==="password"?"👁️":"🙈";
   });
 
-  async function getClient(){
+  async async function getClient(){
     if(window.kidsMathSupabase)return window.kidsMathSupabase;
     const c=window.KIDS_MATH_SUPABASE;
-    if(window.supabase&&c){
-      window.kidsMathSupabase=window.supabase.createClient(c.url,c.anonKey);
-      return window.kidsMathSupabase;
-    }
-    throw new Error("Cloud login is unavailable. Check Supabase configuration.");
+    if(!c)throw new Error("Supabase configuration file did not load. Verify supabase-config.js is in the GitHub repository root.");
+    if(!window.supabase)throw new Error("Supabase library did not load. Check your internet connection or allow jsDelivr.");
+    window.kidsMathSupabase=window.supabase.createClient(c.url,c.anonKey);
+    return window.kidsMathSupabase;
   }
 
   async function login(){
@@ -124,7 +138,7 @@ pointer-events:none;white-space:nowrap;
         "get_auth_email",{p_app_user_id:selected}
       );
       if(emailError)throw new Error(
-        "Login setup is incomplete. Run supabase-v1.2.6-pin-login.sql in Supabase."
+        "Login setup is incomplete. Run supabase-v1.2.7-pin-login.sql in Supabase."
       );
       const email=String(emailData||"").trim();
       if(!email)throw new Error(

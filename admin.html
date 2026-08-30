@@ -114,8 +114,23 @@ background:rgba(255,255,255,.94);color:#475569;
 border:1px solid #cbd5e1;box-shadow:0 2px 8px rgba(0,0,0,.12);
 pointer-events:none;white-space:nowrap;
 }
-</style><script src="app-config.js"></script>
-</head>
+</style><script src="./app-config.js"></script>
+<script src="./supabase-config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function(){
+  function init(){
+    if(window.supabase && window.KIDS_MATH_SUPABASE && !window.kidsMathSupabase){
+      window.kidsMathSupabase=window.supabase.createClient(
+        window.KIDS_MATH_SUPABASE.url,
+        window.KIDS_MATH_SUPABASE.anonKey
+      );
+    }
+  }
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",init);
+  else init();
+})();
+</script></head>
 <body><nav id="globalPageNav" class="globalPageNav">
   <a href="index.html">👤 User Page</a>
   <a href="login.html">🔐 User Login</a>
@@ -597,7 +612,7 @@ document.addEventListener("DOMContentLoaded",function(){
     if(changed)localStorage.setItem(key,JSON.stringify(list));
   }catch(e){}
 })();
-</script><div id="kidsMathVersionBadge" aria-label="Production version">Production v1.2.6</div><script id="kidsMathAdminCloudSourceV124">
+</script><div id="kidsMathVersionBadge" aria-label="Production version">Production v1.2.7</div><script id="kidsMathAdminCloudSourceV124">
 (function(){
  async function guard(){
   const mode=sessionStorage.getItem("poorviAuthMode");
