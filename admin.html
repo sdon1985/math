@@ -613,52 +613,53 @@ document.addEventListener("DOMContentLoaded",function(){
     if(changed)localStorage.setItem(key,JSON.stringify(list));
   }catch(e){}
 })();
-</script><div id="kidsMathVersionBadge" aria-label="Production version">Production v1.2.3</div><script id="kidsMathSupabaseAdminGuard">
-(function(){
-  async function enforceAdmin(){
-    if(sessionStorage.getItem("poorviAuthMode")!=="supabase")return;
-    const sb=window.kidsMathSupabase;if(!sb)return;
-    const {data:{user}}=await sb.auth.getUser();
-    if(!user){sessionStorage.clear();location.replace("login.html");return;}
-    const {data:m}=await sb.from("auth_users").select("app_user_id").eq("auth_user_id",user.id).single();
-    if(!m){await sb.auth.signOut();sessionStorage.clear();location.replace("login.html");return;}
-    const {data:u}=await sb.from("kids_users").select("*").eq("id",m.app_user_id).single();
-    if(!u||u.role!=="admin"){alert("Admin access required.");await sb.auth.signOut();sessionStorage.clear();location.replace("login.html");return;}
-  }
-  window.addEventListener("load",()=>setTimeout(enforceAdmin,250));
-})();
-</script><script id="kidsMathCloudAdminV123">
-window.kidsMathCloudAdmin={
- async pending(){
-  const s=window.kidsMathSupabase;if(!s)return[];
-  const {data,error}=await s.from("worksheets").select("*").eq("status","pending").order("submitted_at",{ascending:false});
-  if(error)throw error;return data||[];
- },
- async review(sub,stats){
-  const s=window.kidsMathSupabase;if(!s)return;
-  const {error}=await s.from("worksheets").update({status:"reviewed"}).eq("id",sub.id);
-  if(error)throw error;
-  const a=stats||{},total=a.total||sub.total||0,correct=a.correct||0,wrong=a.wrong||0,na=a.notAnswered||0;
-  const {error:pe}=await s.from("progress").upsert({
-    worksheet_id:sub.id,user_id:sub.userId,user_name:sub.userName||"Guest",
-    date:sub.date,correct,wrong,not_answered:na,total,
-    accuracy:total?Math.round(correct*100/total):0,elapsed:sub.elapsed||0,
-    operation:sub.operation,range:sub.range,reviewed:true
-  });
-  if(pe)throw pe;
- }
-};
+</script><div id="kidsMathVersionBadge" aria-label="Production version">Production v1.2.5</div><script id="kidsMathAdminCloudSourceV124">
 (function(){
  async function guard(){
-  if(sessionStorage.getItem("poorviAuthMode")!=="supabase")return;
-  const s=window.kidsMathSupabase;if(!s)return;
-  const {data:{user}}=await s.auth.getUser();
-  if(!user){location.replace("login.html");return;}
-  const {data:m}=await s.from("auth_users").select("app_user_id").eq("auth_user_id",user.id).single();
-  const {data:u}=m?await s.from("kids_users").select("*").eq("id",m.app_user_id).single():{data:null};
-  if(!u||u.role!=="admin"){await s.auth.signOut();sessionStorage.clear();location.replace("login.html");}
+  const mode=sessionStorage.getItem("poorviAuthMode");
+  if(mode!=="supabase"){
+    // Direct access to admin.html must never reveal the admin application.
+    // Show the existing login screen instead of returning early.
+    const login=document.getElementById("login"),app=document.getElementById("app");
+    if(login)login.classList.remove("hidden");
+    if(app)app.classList.add("hidden");
+    return;
+  }
+  const s=window.kidsMathSupabase;
+  if(!s){location.replace("login.html");return;}
+  const {data:{user},error:ae}=await s.auth.getUser();
+  if(ae||!user){sessionStorage.clear();location.replace("login.html");return;}
+  const {data:m,error:me}=await s.from("auth_users").select("app_user_id").eq("auth_user_id",user.id).single();
+  if(me||!m){await s.auth.signOut();sessionStorage.clear();location.replace("login.html");return;}
+  const {data:u,error:ue}=await s.from("kids_users").select("*").eq("id",m.app_user_id).single();
+  if(ue||!u||u.role!=="admin"){await s.auth.signOut();sessionStorage.clear();location.replace("login.html");return;}
+  sessionStorage.setItem("poorviCurrentUser","admin");
+  sessionStorage.setItem("poorviDisplayName",u.display_name);
+  sessionStorage.setItem("poorviRole","admin");
+  const login=document.getElementById("login"),app=document.getElementById("app");
+  if(login)login.classList.add("hidden");if(app)app.classList.remove("hidden");
+  await cloudPending();
  }
- window.addEventListener("load",()=>setTimeout(guard,200));
+ async function cloudPending(){
+  const s=window.kidsMathSupabase;if(!s)return;
+  const {data,error}=await s.from("worksheets").select("*").eq("status","pending").order("submitted_at",{ascending:false});
+  if(error){console.warn("Cloud pending reviews:",error);return}
+  const cloud=(data||[]).map(x=>{
+    const sub=x.submission||{};
+    return Object.assign({},sub,{id:x.id,userId:x.user_id,userName:x.user_name,created:Date.parse(x.submitted_at)||sub.created||Date.now(),total:x.total||sub.total,operation:x.operation||sub.operation,range:x.range||sub.range});
+  });
+  window.kidsMathCloudPending=cloud;
+  const list=document.getElementById("pendingList");
+  if(!list)return;
+  if(!cloud.length){list.innerHTML='<div class="empty">🎉 No worksheets waiting for review.</div>';return}
+  list.innerHTML=cloud.map(s=>'<div class="review-row"><div><b>👤 '+String(s.userName||"Guest")+'</b><div><b>'+String((({addition:"➕ Addition",subtraction:"➖ Subtraction",multiplication:"✖️ Multiplication",division:"➗ Division"})[s.operation]||s.operation||"Worksheet"))+'</b> <span class="badge">⏳ Pending Review</span></div><div class="muted">'+new Date(s.created).toLocaleString()+' • '+(s.total||0)+' questions'+(s.range?' • '+s.range:'')+'</div></div><button class="primary" data-cloud-review="'+String(s.id)+'">Review</button></div>').join("");
+  document.querySelectorAll("[data-cloud-review]").forEach(b=>b.onclick=()=>{
+    if(typeof openReview==="function")openReview(b.dataset.cloudReview);
+  });
+ }
+ window.kidsMathCloudAdminV124={pending:cloudPending};
+ window.addEventListener("load",()=>setTimeout(guard,300));
+ window.addEventListener("focus",()=>{if(sessionStorage.getItem("poorviAuthMode")==="supabase")cloudPending()});
 })();
 </script></body>
 </html>

@@ -122,7 +122,7 @@ body.test-focus-mode #sheet *{
 body.test-focus-mode ::selection{background:transparent}
 body.test-focus-mode ::-moz-selection{background:transparent}
 </style><style id="kidsMathAnswerBoxSize">
-/* Production v1.2.3: slightly larger Apple Pencil answer boxes */
+/* Production v1.2.5: slightly larger Apple Pencil answer boxes */
 #sheet .answerBox,
 #sheet .answer-box,
 #sheet .answerCanvas,
@@ -1713,7 +1713,7 @@ document.addEventListener("DOMContentLoaded",setName);window.addEventListener("l
     update();
   });
 })();
-</script><div id="kidsMathVersionBadge" aria-label="Production version">Production v1.2.3</div><script id="kidsMathCentralSync">
+</script><div id="kidsMathVersionBadge" aria-label="Production version">Production v1.2.5</div><script id="kidsMathCentralSync">
 (function(){
 async function profile(){
  const sb=window.kidsMathSupabase;if(!sb)return null;
@@ -1749,34 +1749,6 @@ window.kidsMathCentral={
 window.addEventListener("load",()=>setTimeout(()=>window.kidsMathCentral&&window.kidsMathCentral.syncProgress().catch(console.warn),300));
 window.addEventListener("focus",()=>window.kidsMathCentral&&window.kidsMathCentral.syncProgress().catch(console.warn));
 document.addEventListener("visibilitychange",()=>{if(!document.hidden&&window.kidsMathCentral)window.kidsMathCentral.syncProgress().catch(console.warn)});
-</script><script id="kidsMathSupabaseSessionGuard">
-(function(){
-  async function enforce(){
-    if(sessionStorage.getItem("poorviAuthMode")!=="supabase")return;
-    const sb=window.kidsMathSupabase;
-    if(!sb)return;
-    const {data:{user}}=await sb.auth.getUser();
-    if(!user){sessionStorage.clear();location.replace("login.html");return;}
-    const {data:m}=await sb.from("auth_users").select("app_user_id").eq("auth_user_id",user.id).single();
-    if(!m){await sb.auth.signOut();sessionStorage.clear();location.replace("login.html");return;}
-    const id=m.app_user_id;
-    sessionStorage.setItem("poorviCurrentUser",id);
-    try{
-      const {data:u}=await sb.from("kids_users").select("*").eq("id",id).single();
-      if(u){
-        sessionStorage.setItem("poorviDisplayName",u.display_name);
-        sessionStorage.setItem("poorviRole",u.role);
-        if(typeof currentUser!=="undefined") currentUser={id:u.id,name:u.display_name,role:u.role};
-        const w=document.getElementById("welcomeTitle");
-        if(w)w.textContent="Welcome to "+u.display_name;
-      }
-    }catch(e){}
-    if(typeof window.kidsMathCentral!=="undefined" && window.kidsMathCentral.syncProgress){
-      try{await window.kidsMathCentral.syncProgress()}catch(e){}
-    }
-  }
-  window.addEventListener("load",()=>setTimeout(enforce,250));
-})();
 </script><script id="kidsMathCloudSourceOfTruth">
 (function(){
   async function sb(){
@@ -1843,24 +1815,6 @@ document.addEventListener("visibilitychange",()=>{if(!document.hidden&&window.ki
     }
   };
 })();
-</script><script id="kidsMathCloudSessionV123">
-(function(){
- async function go(){
-  if(sessionStorage.getItem("poorviAuthMode")!=="supabase")return;
-  const s=window.kidsMathSupabase;if(!s)return;
-  const {data:{user}}=await s.auth.getUser();
-  if(!user){location.replace("login.html");return;}
-  const {data:m,error}=await s.from("auth_users").select("app_user_id").eq("auth_user_id",user.id).single();
-  if(error||!m){await s.auth.signOut();sessionStorage.clear();location.replace("login.html");return;}
-  const {data:u}=await s.from("kids_users").select("*").eq("id",m.app_user_id).single();
-  if(!u||u.role==="admin"){if(u&&u.role==="admin")location.replace("admin.html");return;}
-  sessionStorage.setItem("poorviCurrentUser",u.id);
-  sessionStorage.setItem("poorviDisplayName",u.display_name);
-  const w=document.getElementById("welcomeTitle");if(w)w.textContent="Welcome to "+u.display_name;
-  if(window.kidsMathCloud){try{await window.kidsMathCloud.refresh()}catch(e){console.warn(e)}}
- }
- window.addEventListener("load",()=>setTimeout(go,200));
-})();
 </script><script id="kidsMathCloudSubmitV123">
 (function(){
  const old=window.makeSubmission;
@@ -1872,5 +1826,30 @@ document.addEventListener("visibilitychange",()=>{if(!document.hidden&&window.ki
    return s;
   };
  }
+})();
+</script><script id="kidsMathStrictCloudIdentityV124">
+(function(){
+ async function enforce(){
+  const mode=sessionStorage.getItem("poorviAuthMode");
+  if(mode!=="supabase")return;
+  const s=window.kidsMathSupabase;
+  if(!s){location.replace("login.html");return;}
+  const {data:{user},error:ae}=await s.auth.getUser();
+  if(ae||!user){sessionStorage.clear();location.replace("login.html");return;}
+  const {data:m,error:me}=await s.from("auth_users").select("app_user_id").eq("auth_user_id",user.id).single();
+  if(me||!m){await s.auth.signOut();sessionStorage.clear();location.replace("login.html");return;}
+  const {data:u,error:ue}=await s.from("kids_users").select("id,display_name,role").eq("id",m.app_user_id).single();
+  if(ue||!u||u.role==="admin"){await s.auth.signOut();sessionStorage.clear();location.replace("login.html");return;}
+  sessionStorage.setItem("poorviCurrentUser",u.id);
+  sessionStorage.setItem("poorviDisplayName",u.display_name);
+  sessionStorage.setItem("poorviRole",u.role);
+  const w=document.getElementById("welcomeTitle");if(w)w.textContent="Welcome to "+u.display_name;
+  // Force every current-user display field to the cloud identity.
+  document.querySelectorAll("[data-current-user-name]").forEach(el=>el.textContent=u.display_name);
+  if(window.kidsMathCloud&&window.kidsMathCloud.refresh){
+    try{await window.kidsMathCloud.refresh()}catch(e){console.warn("Progress sync:",e)}
+  }
+ }
+ window.addEventListener("load",()=>setTimeout(enforce,250));
 })();
 </script></body></html>
