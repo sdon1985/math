@@ -76,7 +76,7 @@ pointer-events:none;white-space:nowrap;
   <div class="links"><a href="index.html">Open User Page</a> · <a href="admin.html">👑 Admin Login</a></div>
 </main>
 
-<div id="kidsMathVersionBadge" aria-label="Production version">Production v1.2.7</div><script id="kidsMathSupabasePinLoginV126">
+<div id="kidsMathVersionBadge" aria-label="Production version">Production v1.2.8</div><script id="kidsMathSupabasePinLoginV126">
 (function(){
   let selected="guest";
   const pin=document.getElementById("pin");
@@ -105,7 +105,7 @@ pointer-events:none;white-space:nowrap;
       pin.type==="password"?"👁️":"🙈";
   });
 
-  async async function getClient(){
+  async function getClient(){
     if(window.kidsMathSupabase)return window.kidsMathSupabase;
     const c=window.KIDS_MATH_SUPABASE;
     if(!c)throw new Error("Supabase configuration file did not load. Verify supabase-config.js is in the GitHub repository root.");
@@ -138,7 +138,7 @@ pointer-events:none;white-space:nowrap;
         "get_auth_email",{p_app_user_id:selected}
       );
       if(emailError)throw new Error(
-        "Login setup is incomplete. Run supabase-v1.2.7-pin-login.sql in Supabase."
+        "Login setup is incomplete. Run supabase-v1.2.8-pin-login.sql in Supabase."
       );
       const email=String(emailData||"").trim();
       if(!email)throw new Error(
