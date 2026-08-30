@@ -60,6 +60,8 @@ select,input{width:100%;padding:12px;border:1px solid #cdd6e2;border-radius:12px
 .progressWeek,.week{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}.day{padding:10px;border:1px solid var(--line);border-radius:12px;background:#fff;text-align:center}.done{background:var(--good)}.day b,.day strong{display:block}.day strong{font-size:20px}
 .overlay{position:fixed;inset:0;background:rgba(15,23,42,.5);display:flex;align-items:center;justify-content:center;padding:18px;z-index:100}.modal{background:#fff;border-radius:20px;padding:22px;width:min(420px,100%);box-shadow:0 25px 70px rgba(0,0,0,.25)}
 .footer{text-align:center;color:#7a8595;font-size:12px;padding:20px}
+
+.cloudStatusGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.cloudStatusCard{border:1px solid var(--line);border-radius:12px;padding:12px;background:#f8fafc;display:flex;justify-content:space-between;align-items:center}.cloudStatusCard span{font-size:22px;font-weight:950}.cloudWorksheetList{margin-top:10px}.cloudWorksheetRow{border:1px solid var(--line);border-radius:12px;padding:11px;margin-top:8px;background:#fff}.cloudWorksheetHead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.cloudPill{padding:5px 8px;border-radius:999px;font-size:12px;font-weight:800}.pendingPill{background:#fff3cd;color:#7a5200}.cloudMistakes{margin-top:10px;border-top:1px solid var(--line);padding-top:9px}.cloudMistakeTitle{font-weight:900;margin:8px 0 5px}.mistakeRow{display:grid;grid-template-columns:42px minmax(150px,1fr) auto;gap:8px;align-items:center;padding:7px 0;border-top:1px solid #edf0f4}.badText{color:#b42318}.cloudGood{padding:10px;border-radius:10px;background:#ecfdf3;color:#166534;font-weight:800}
 .hidden{display:none!important}
 @media(max-width:760px){.controls{grid-template-columns:1fr 1fr}.tableChecks{grid-template-columns:repeat(5,1fr)}.stats{grid-template-columns:repeat(2,1fr)}.topbar{align-items:flex-start;flex-direction:column}#welcomeTitle{font-size:26px}}
 @media(max-width:520px){.page{padding:10px}.controls{grid-template-columns:1fr}.tableChecks{grid-template-columns:repeat(4,1fr)}.info{grid-template-columns:1fr}.cell{min-height:92px}.q{font-size:15px}.pad{width:68px;height:48px}}
@@ -69,7 +71,7 @@ select,input{width:100%;padding:12px;border:1px solid #cdd6e2;border-radius:12px
 </head><body>
 <div class="page">
 <header class="topbar">
-  <div><div class="eyebrow">KIDS MATH TEST • PRODUCTION 2.0</div><div id="welcomeTitle">Welcome</div><div class="muted">Your private learning dashboard</div></div>
+  <div><div class="eyebrow">KIDS MATH TEST • PRODUCTION 2.0.4</div><div id="welcomeTitle">Welcome</div><div class="muted">Your private learning dashboard</div></div>
   <div class="top-actions">
     <button class="btn secondary" id="switchUserBtn">⇄ Switch User</button>
     <a class="btn secondary" href="admin.html">👑 Admin</a>
@@ -121,6 +123,11 @@ select,input{width:100%;padding:12px;border:1px solid #cdd6e2;border-radius:12px
  <div class="stats"><div class="stat"><b id="score">—</b>Score</div><div class="stat"><b id="acc">—</b>Accuracy</div><div class="stat"><b id="used">—</b>Time</div><div class="stat"><b id="best">—</b>Best</div></div>
 </section>
 
+<section class="card" id="worksheetStatusCard">
+ <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><div><div class="section-title">My Submitted Worksheets</div><div class="muted">Track tests waiting for parent review and see reviewed mistakes.</div></div><button class="btn secondary" id="refreshWorksheetStatus">↻ Refresh</button></div>
+ <div id="worksheetStatus" style="margin-top:12px"></div>
+</section>
+
 <section class="card" id="progressTracker">
  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><div><div class="section-title">Progress</div><div class="muted">Your cloud-saved learning history.</div></div><div class="actions"><button class="btn primary" id="weekTab">Weekly</button><button class="btn secondary" id="monthTab">Monthly</button><button class="btn secondary" id="yearTab">Yearly</button></div></div>
  <div id="weeklyTracker" style="margin-top:14px"><div id="week" class="progressWeek"></div><div id="summary" class="muted" style="margin-top:9px"></div><div id="dayDetails" class="hidden" style="margin-top:10px"></div></div>
@@ -139,7 +146,7 @@ select,input{width:100%;padding:12px;border:1px solid #cdd6e2;border-radius:12px
 </main>
 </div>
 <div id="modal" class="overlay hidden"><div class="modal"><h2>🔒 Parent Access</h2><div class="muted">Enter parent PIN.</div><input id="pin" type="password" inputmode="numeric"><div class="actions" style="margin-top:10px"><button class="btn primary" id="unlock">Unlock</button><button class="btn secondary" id="cancel">Cancel</button></div></div></div>
-<div class="footer">Production 2.0.0 • Supabase Cloud • Cross-device</div>
+<div class="footer">Production 2.0.4 • Supabase Cloud • Cross-device</div>
 
 <script src="./app-core.js"></script><script src="./session-nav.js"></script><script src="./cloud-bootstrap.js"></script>
 </body></html>

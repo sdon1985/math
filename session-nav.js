@@ -55,7 +55,7 @@ const x=$(id); if(x)x.disabled=false;
 }
 
 function hardEndCurrentUserTest(){
-try{exitTestFocusMode()}catch(e){}
+
 // User switching intentionally ends the current user's active session.
 clearActiveSession(currentUser?.id||"guest");
 // Stop every timer pattern used by previous versions.

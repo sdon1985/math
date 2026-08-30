@@ -125,7 +125,7 @@ if($("count"))$("count").value=String(s.count||s.qs.length);
 if($("mins")){$("mins").value=String(s.minutes||"");syncTimerOptions(s.minutes)}
 if($("answerMode"))$("answerMode").value=s.answerMode||"pencil";
 qs=s.qs;
-started=true;done=false;begin=Number(s.startedAt||Date.now());enterTestFocusMode();
+started=true;done=false;begin=Number(s.startedAt||Date.now());
 left=Math.max(0,Math.ceil((expiresAt-Date.now())/1000));
 updateTimer();
 $("app").classList.add("active");
@@ -186,48 +186,7 @@ function setupPencil(){document.querySelectorAll(".pad").forEach(c=>{let x=c.get
 function setTool(m){pencilTool=m;$("writeBtn").className=m==="write"?"primary":"secondary";$("eraseBtn").className=m==="erase"?"erase":"secondary";$("modeText").textContent=m==="erase"?"Erase mode — tap one answer to clear it":"Write mode — write with Apple Pencil"}
 function fitGrid(){let g=document.querySelector(".grid");if(!g)return;let w=g.clientWidth,min=$("answerMode").value==="pencil"?150:120,cols=Math.max(2,Math.min(10,Math.floor(w/min)));g.style.setProperty("--cols",cols);[...g.children].forEach((c,i)=>c.style.borderRight=((i+1)%cols===0)?"0":"1px solid #bbb")}
 
-let __focusHistoryPushed=false;
-let __focusBeforeUnload=false;
-
-function enterTestFocusMode(){
-document.body.classList.add("test-focus-mode");
-const app=$("app");
-try{
-if(app && document.fullscreenElement!==app && app.requestFullscreen){
-const p=app.requestFullscreen({navigationUI:"hide"});
-if(p&&p.catch)p.catch(()=>{});
-}
-}catch(e){}
-if(!__focusHistoryPushed){
-try{
-history.pushState({poorviTestFocus:true},"",location.href);
-__focusHistoryPushed=true;
-}catch(e){}
-}
-if(!__focusBeforeUnload){
-__focusBeforeUnload=true;
-window.addEventListener("beforeunload",function(e){
-if(started&&!done){
-persistActiveSession();
-e.preventDefault();
-e.returnValue="";
-}
-});
-window.addEventListener("popstate",function(){
-if(started&&!done){
-try{history.pushState({poorviTestFocus:true},"",location.href)}catch(e){}
-}
-});
-}
-}
-function exitTestFocusMode(){
-document.body.classList.remove("test-focus-mode");
-try{
-if(document.fullscreenElement && document.exitFullscreen)document.exitFullscreen().catch(()=>{});
-}catch(e){}
-__focusHistoryPushed=false;
-}
-function startTest(){if(started||done)return;enterTestFocusMode();syncTimerOptions($("mins").value);started=true;begin=Date.now();left=+$("mins").value*60;updateTimer();$("app").classList.add("active");$("startBtn").disabled=true;$("submitBtn").classList.remove("hidden");if($("answerMode").value==="pencil"){$("pencilTools").classList.remove("hidden");setTool("write")}requestAnimationFrame(()=>{const sheet=document.getElementById("sheet");if(sheet)sheet.scrollIntoView({behavior:"smooth",block:"start"});});persistActiveSession();if(left){if(tid)clearInterval(tid);const expiresAt=begin+(+$("mins").value*60000);tid=setInterval(()=>{left=Math.max(0,Math.ceil((expiresAt-Date.now())/1000));updateTimer();persistActiveSession();if(left<=0){clearInterval(tid);tid=null;clearActiveSession(currentUser?.id);finish(true,false)}},250)}}
+function startTest(){if(started||done)return;syncTimerOptions($("mins").value);started=true;begin=Date.now();left=+$("mins").value*60;updateTimer();$("app").classList.add("active");$("startBtn").disabled=true;$("submitBtn").classList.remove("hidden");if($("answerMode").value==="pencil"){$("pencilTools").classList.remove("hidden");setTool("write")}requestAnimationFrame(()=>{const sheet=document.getElementById("sheet");if(sheet)sheet.scrollIntoView({behavior:"smooth",block:"start"});});persistActiveSession();if(left){if(tid)clearInterval(tid);const expiresAt=begin+(+$("mins").value*60000);tid=setInterval(()=>{left=Math.max(0,Math.ceil((expiresAt-Date.now())/1000));updateTimer();persistActiveSession();if(left<=0){clearInterval(tid);tid=null;clearActiveSession(currentUser?.id);finish(true,false)}},250)}}
 function updateTimer(){let m=Math.floor(left/60),s=left%60;$("timer").textContent=m+":"+String(s).padStart(2,"0");$("timer").classList.toggle("warn",left>0&&left<=30)}
 function elapsed(){return $("mins").value==="0"?Math.round((Date.now()-begin)/1000):+$("mins").value*60-left}
 
@@ -345,10 +304,21 @@ renderWeek();
 }
 async function finish(up=false,early=false){
 if(done)return;
-done=true;started=false;clearInterval(tid);tid=null;clearActiveSession(currentUser?.id||"guest");exitTestFocusMode();$("app").classList.remove("active");
+done=true;started=false;clearInterval(tid);tid=null;clearActiveSession(currentUser?.id||"guest");$("app").classList.remove("active");
 $("pencilTools").classList.add("hidden");$("submitBtn").classList.add("hidden");
 const et=elapsed(),pencil=$("answerMode").value==="pencil";
 const submission=makeSubmission();
+// Persist immediately so timer auto-submit reaches Admin before OCR completes.
+let cloudSaved=false;
+for(let attempt=1;attempt<=3 && !cloudSaved;attempt++){
+  try{
+    await savePendingSubmission(submission);
+    cloudSaved=true;
+  }catch(e){
+    console.error("Cloud submit attempt "+attempt+" failed",e);
+    if(attempt<3)await new Promise(r=>setTimeout(r,500*attempt));
+  }
+}
 
 if(pencil){
 $("ocrStatus").classList.remove("hidden");$("result").classList.add("hidden");
@@ -384,14 +354,14 @@ await worker.terminate();
 submission.answers.forEach(x=>{x.ocr="";x.status=(x.image?"pending":"not_answered")});
 $("ocrProgress").textContent="OCR unavailable. Parent can score the answers manually.";
 }
-await savePendingSubmission(submission);
+try{await savePendingSubmission(submission);cloudSaved=true}catch(e){console.error("Cloud OCR/final submit failed",e)}
 $("ocrStatus").classList.add("hidden");
 $("score").textContent="Pending Parent Review";
 $("acc").textContent="—";$("used").textContent=time(et);$("best").textContent="—";
 $("msg").textContent=early?"🎉 Great job! You finished early!":"✓ Test submitted — waiting for parent review.";
 $("result").classList.remove("hidden");renderWeek();
 }else{
-await savePendingSubmission(submission);
+try{await savePendingSubmission(submission);cloudSaved=true}catch(e){console.error("Cloud final submission failed",e)}
 $("score").textContent="Pending Parent Review";
 $("acc").textContent="—";$("used").textContent=time(et);$("best").textContent="—";
 $("msg").textContent=early?"🎉 Great job! You finished early!":"✓ Test submitted — waiting for parent review.";
