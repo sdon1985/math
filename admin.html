@@ -1,0 +1,623 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Math Practice — Admin</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:#f5f7fb;color:#17202a}
+button,select,input{font:inherit}
+button{border:0;border-radius:10px;padding:10px 14px;cursor:pointer}
+.primary{background:#1769ff;color:white}
+.secondary{background:white;border:1px solid #ccd3dd}
+.danger{background:#fff0f0;color:#b42318;border:1px solid #f0b8b8}
+.muted{color:#667085;font-size:13px}
+.hidden{display:none!important}
+.app{max-width:1050px;margin:auto;padding:16px}
+.header{background:white;border:1px solid #e1e5eb;border-radius:16px;padding:16px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.header h1{margin:0;font-size:22px}
+.nav{display:flex;gap:7px;flex-wrap:wrap}
+.card{background:white;border:1px solid #e1e5eb;border-radius:16px;padding:15px;margin:12px 0}
+.card h2{font-size:17px;margin:0 0 5px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+.stat{background:#f7f8fa;border-radius:11px;padding:10px}
+.stat b{display:block;font-size:20px}
+.user-tabs{display:flex;gap:7px;overflow:auto;padding:3px 0 8px}
+.user-tab{white-space:nowrap}
+.user-tab.active{background:#1769ff;color:white;border-color:#1769ff}
+.user-section{border:1px solid #e0e4ea;border-radius:12px;margin:9px 0;overflow:hidden}
+.user-head{padding:11px 12px;background:#f8f9fb;display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 12px;border-top:1px solid #e8ebef;flex-wrap:wrap}
+.row-left{min-width:0}
+.badge{display:inline-block;padding:4px 8px;border-radius:999px;background:#fff3cd;font-size:12px}
+.review-row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 0;border-top:1px solid #e5e7eb}
+.empty{padding:18px;text-align:center;color:#667085}
+.modal{position:fixed;inset:0;background:rgba(15,23,42,.45);display:flex;align-items:center;justify-content:center;padding:16px;z-index:20}
+.modal-box{background:white;border-radius:16px;padding:20px;width:min(420px,100%)}
+.pin{font-size:24px;text-align:center;letter-spacing:5px;width:100%;padding:10px;border:1px solid #ccd3dd;border-radius:10px}
+.notice{padding:10px 12px;border-radius:10px;background:#fff8e6;margin-top:10px}
+@media(max-width:700px){.stats{grid-template-columns:repeat(2,1fr)}.app{padding:10px}}
+</style>
+<style>
+.reviewStatusBtn{min-width:105px;font-weight:600}
+.reviewStatusBtn.selectedStatus{background:#1769ff!important;color:#fff!important;border-color:#1769ff!important;box-shadow:0 3px 10px rgba(23,105,255,.22)}
+</style>
+<style>
+.adminReviewQuestion .reviewStatusBtn{min-width:112px;font-size:15px;font-weight:700;padding:10px 13px}
+.adminReviewQuestion .reviewStatusBtn.selectedStatus{background:#1769ff!important;color:#fff!important;border-color:#1769ff!important;box-shadow:0 3px 10px rgba(23,105,255,.22)}
+@media(max-width:600px){
+  .adminReviewQuestion>div:nth-child(3){grid-template-columns:1fr!important}
+  .adminReviewQuestion img,.adminReviewQuestion div[style*="width:min(260px"]{width:100%!important;max-width:220px!important;height:95px!important}
+  .adminReviewQuestion .reviewStatusBtn{flex:1;min-width:0}
+}
+</style>
+
+<style>
+.reviewOneRow .reviewStatusBtn{font-size:12px;font-weight:700;padding:7px 8px;min-width:0;white-space:nowrap}
+.reviewOneRow .reviewStatusBtn.selectedStatus{background:#1769ff!important;color:#fff!important;border-color:#1769ff!important}
+@media(max-width:800px){
+ .reviewOneRow{grid-template-columns:30px minmax(85px,1fr) 65px 72px minmax(0,1fr)!important}
+ .reviewOneRow>div:nth-child(5){display:none}
+ .reviewOneRow>div:last-child{grid-column:2/-1}
+}
+@media(max-width:480px){
+ .reviewOneRow{grid-template-columns:25px minmax(75px,1fr) 60px 65px!important;padding:6px!important}
+ .reviewOneRow>div:last-child{grid-column:1/-1}
+ .reviewOneRow .reviewStatusBtn{flex:1}
+}
+</style>
+
+<style>
+.ai-recognize-bar{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  flex-wrap:wrap;padding:10px 12px;margin:10px 0;
+  border:1px solid #d9d6fe;border-radius:12px;
+  background:linear-gradient(135deg,#f7f5ff,#f5f9ff);
+}
+.ai-recognize-btn{
+  display:inline-flex;align-items:center;gap:7px;
+  background:linear-gradient(135deg,#6d28d9,#4f46e5)!important;
+  color:#fff!important;font-weight:700;border:0;
+  box-shadow:0 5px 14px rgba(79,70,229,.20);
+}
+.ai-recognize-btn:disabled{opacity:.65;cursor:wait;transform:none}
+.ai-result{
+  margin-top:5px;padding:5px 8px;border-radius:7px;
+  background:#f8fafc;font-size:12px;color:#475467;
+}
+</style>
+
+<style>
+/* v1.0 polished admin PIN login */
+#login{background:linear-gradient(135deg,#111827,#312e81,#4f46e5)!important}
+#login .modal-box{width:min(430px,100%);padding:30px;border-radius:24px;box-shadow:0 22px 65px rgba(0,0,0,.28);text-align:center}
+.admin-login-icon{width:70px;height:70px;margin:0 auto 12px;border-radius:21px;background:#eef2ff;display:grid;place-items:center;font-size:34px}
+.admin-login-title{margin:5px 0;font-size:26px}
+.admin-login-sub{font-size:14px;color:#667085;margin-bottom:18px}
+.admin-pin-wrap{position:relative}
+#pin.pin{font-size:28px;letter-spacing:9px;padding:14px 48px 14px 14px;border-radius:13px;box-sizing:border-box}
+.admin-pin-toggle{position:absolute;right:10px;top:50%;transform:translateY(-50%);border:0;background:transparent;font-size:18px;cursor:pointer}
+#loginBtn{border-radius:13px!important;padding:13px!important;font-size:16px;font-weight:800}
+.admin-login-back{display:inline-block;margin-top:16px;color:#667085;font-size:12px;text-decoration:none}
+</style>
+<style id="globalPageNavCSS">
+.globalPageNav{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin:8px 0 12px}
+.globalPageNav a{display:inline-block;padding:8px 10px;border:1px solid #d0d5dd;border-radius:10px;background:#fff;color:inherit;text-decoration:none;font-size:12px;font-weight:750}
+.globalPageNav a:hover{background:#f8fafc}
+</style><style id="kidsMathVersionBadge">
+#kidsMathVersionBadge{
+position:fixed;left:50%;bottom:8px;transform:translateX(-50%);
+z-index:2147483647;padding:4px 10px;border-radius:999px;
+font:700 11px/1.2 Arial,sans-serif;letter-spacing:.2px;
+background:rgba(255,255,255,.94);color:#475569;
+border:1px solid #cbd5e1;box-shadow:0 2px 8px rgba(0,0,0,.12);
+pointer-events:none;white-space:nowrap;
+}
+</style><script src="supabase-config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+window.addEventListener("DOMContentLoaded",function(){
+ const c=window.KIDS_MATH_SUPABASE;
+ if(c&&c.url&&!c.url.includes("YOUR-PROJECT")&&c.anonKey&&!c.anonKey.includes("YOUR_")){
+   window.kidsMathSupabase=supabase.createClient(c.url,c.anonKey);
+ }
+});
+</script></head>
+<body><nav id="globalPageNav" class="globalPageNav">
+  <a href="index.html">👤 User Page</a>
+  <a href="login.html">🔐 User Login</a>
+</nav>
+<div id="productionPageNav" style="display:flex;justify-content:flex-end;gap:7px;flex-wrap:wrap;margin:6px 0 10px">
+  <a href="index.html" style="display:inline-block;padding:8px 12px;border:1px solid #ccd3dd;border-radius:10px;background:#fff;text-decoration:none;color:inherit;font-size:13px">📝 User Page</a>
+</div>
+
+<div id="login" class="modal">
+  <div class="modal-box">
+    <div class="admin-login-icon">👑</div>
+    <h2 class="admin-login-title">Admin Access</h2>
+    <div class="admin-login-sub">Enter your PIN to manage worksheets</div>
+    <div class="admin-pin-wrap">
+      <input id="pin" class="pin" type="password" inputmode="numeric" maxlength="4" placeholder="••••" autocomplete="off" aria-label="Admin PIN">
+      <button type="button" class="admin-pin-toggle" id="adminPinToggle" aria-label="Show PIN">👁️</button>
+    </div>
+    <button id="loginBtn" class="primary" style="width:100%;margin-top:12px">🔓 Enter Admin</button>
+    <div id="loginError" class="muted" style="text-align:center;margin-top:8px;min-height:20px"></div>
+    <a class="admin-login-back" href="index.html">← Back to User Login</a>
+  </div>
+</div>
+
+<div id="app" class="app hidden">
+  <header class="header">
+    <div>
+      <h1>👑 Math Practice — Admin</h1>
+      <div class="muted">Manage and review user worksheets</div>
+    </div>
+    <div class="nav">
+      <button class="secondary" data-page="dashboard">📊 Dashboard</button>
+      <button class="secondary" data-page="pending">📝 Pending Reviews</button>
+      <button class="secondary" data-page="past">🗂️ Past Tests</button>
+      <button class="secondary" data-page="users">👥 Users</button>
+      <a class="secondary" href="index.html" style="text-decoration:none;display:inline-flex;align-items:center">← User Page</a>
+    </div>
+  </header>
+
+  <main>
+    <section id="dashboard" class="page">
+      <div class="card">
+        <h2>📊 Dashboard</h2>
+        <div class="muted">Choose a user to see their completed worksheets and scores.</div>
+        <div id="dashStats" class="stats"></div>
+      </div>
+      <div class="card">
+        <h2>👥 Users</h2>
+        <div id="dashUsers"></div>
+      </div>
+    </section>
+
+    <section id="pending" class="page hidden">
+      <div class="card">
+        <h2>📝 Pending Reviews</h2>
+        <div class="muted">Every submitted worksheet waiting for parent review.</div>
+        <div id="pendingList" style="margin-top:8px"></div>
+      </div>
+    </section>
+
+    <section id="past" class="page hidden">
+      <div class="card">
+        <h2>🗂️ Past Tests</h2>
+        <div class="muted">Completed/reviewed worksheets for all users.</div>
+        <div id="pastList" style="margin-top:8px"></div>
+      </div>
+    </section>
+
+    <section id="users" class="page hidden">
+      <div class="card">
+        <h2>👥 User Worksheets</h2>
+        <div id="userTabs" class="user-tabs"></div>
+        <div id="userDetails"></div>
+      </div>
+    </section>
+
+    <section id="review" class="page hidden">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap">
+          <div>
+            <h2>✏️ Review Worksheet</h2>
+            <div id="reviewMeta" class="muted"></div>
+          </div>
+          <button class="secondary" id="backToPending">← Back</button>
+        </div>
+        <div class="ai-recognize-bar">
+  <div>
+    <b>🤖 AI Handwriting Recognition</b>
+    <div class="muted">Suggest answers from the child's handwriting. You still make the final decision.</div>
+  </div>
+  <button type="button" id="aiRecognizeBtn" class="ai-recognize-btn">✨ Recognize Answers</button>
+</div>
+<div id="reviewQuestions" style="margin-top:10px"></div>
+        <div class="actions" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+          <button class="primary" id="saveReview">💾 Save Review</button>
+          <button class="danger" id="voidPending">🚫 Void Test</button>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+const ADMIN_PIN="2580";
+let currentReview=null;
+let activeUser="";
+
+function $(id){return document.getElementById(id)}
+function users(){
+  try{
+    const a=JSON.parse(localStorage.getItem("poorviMathUsers")||"[]");
+    return Array.isArray(a)?a:[];
+  }catch(e){return []}
+}
+function allPending(){
+  try{
+    const a=JSON.parse(localStorage.getItem("poorviPendingSubmissions")||"[]");
+    return Array.isArray(a)?a:[];
+  }catch(e){return []}
+}
+function history(uid){
+  try{
+    const a=JSON.parse(localStorage.getItem("poorviMathHistoryByUser")||"{}");
+    if(a && Array.isArray(a[uid]))return a[uid];
+    // v25.4 fallback for a single legacy history store
+    if(uid==="guest"){
+      const old=JSON.parse(localStorage.getItem("poorviMathHistory")||"[]");
+      return Array.isArray(old)?old:[];
+    }
+    return [];
+  }catch(e){return []}
+}
+function saveHistory(uid,list){
+  let a={};
+  try{a=JSON.parse(localStorage.getItem("poorviMathHistoryByUser")||"{}")||{}}catch(e){}
+  a[uid]=list;
+  localStorage.setItem("poorviMathHistoryByUser",JSON.stringify(a));
+}
+function userName(uid,submission){
+  if(submission && submission.userName)return submission.userName;
+  const u=users().find(x=>x.id===uid);
+  return u?u.name:"Guest";
+}
+function opName(op){
+  return ({addition:"➕ Addition",subtraction:"➖ Subtraction",multiplication:"✖️ Multiplication",division:"➗ Division"})[op]||op||"Worksheet";
+}
+function page(name){
+  document.querySelectorAll(".page").forEach(x=>x.classList.add("hidden"));
+  $(name).classList.remove("hidden");
+}
+function formatDate(x){
+  if(!x)return "";
+  const d=new Date(x);
+  return isNaN(d)?x:d.toLocaleString();
+}
+function renderDashboard(){
+  const us=users().filter(u=>u.active!==false);
+  const p=allPending();
+  let total=0,correct=0,wrong=0,na=0;
+  us.forEach(u=>history(u.id).forEach(x=>{
+    total++;correct+=x.n||0;wrong+=x.wrong||0;na+=x.notAnswered||0;
+  }));
+  $("dashStats").innerHTML=
+    '<div class="stat"><b>'+us.length+'</b><span class="muted">Users</span></div>'+
+    '<div class="stat"><b>'+p.length+'</b><span class="muted">Pending Reviews</span></div>'+
+    '<div class="stat"><b>'+total+'</b><span class="muted">Completed Tests</span></div>'+
+    '<div class="stat"><b>'+((correct+wrong+na)?Math.round(correct/(correct+wrong+na)*100):0)+'%</b><span class="muted">Overall Accuracy</span></div>';
+
+  $("dashUsers").innerHTML=us.length?us.map(u=>{
+    const h=history(u.id),pending=p.filter(x=>(x.userId||"guest")===u.id);
+    const avg=h.length?Math.round(h.reduce((s,x)=>s+(x.a||0),0)/h.length):0;
+    return '<div class="user-section"><div class="user-head"><div><b>👤 '+u.name+'</b><div class="muted">'+h.length+' completed • '+pending.length+' pending</div></div><button class="secondary" data-user="'+u.id+'">View Worksheets</button></div>'+
+      '<div class="row"><div class="row-left">Average score</div><b>'+avg+'%</b></div></div>';
+  }).join(""):'<div class="empty">No users found.</div>';
+  document.querySelectorAll("[data-user]").forEach(b=>b.onclick=()=>{activeUser=b.dataset.user;renderUsers();page("users")});
+}
+function renderPending(){
+  const p=allPending().sort((a,b)=>(b.created||0)-(a.created||0));
+  if(!p.length){$("pendingList").innerHTML='<div class="empty">🎉 No worksheets waiting for review.</div>';return}
+  $("pendingList").innerHTML=p.map(s=>{
+    const uid=s.userId||"guest";
+    return '<div class="review-row"><div><b>👤 '+userName(uid,s)+'</b><div><b>'+opName(s.operation)+'</b> <span class="badge">⏳ Pending Review</span></div><div class="muted">'+formatDate(s.created||s.date)+' • '+(s.total||0)+' questions'+(s.range?' • '+s.range:'')+'</div></div><button class="primary" data-review="'+s.id+'">Review</button></div>';
+  }).join("");
+  document.querySelectorAll("[data-review]").forEach(b=>b.onclick=()=>openReview(b.dataset.review));
+}
+function renderPast(){
+  const us=users().filter(u=>u.active!==false);
+  let html='';
+  us.forEach(u=>{
+    const h=history(u.id).slice().sort((a,b)=>String(b.date||"").localeCompare(String(a.date||"")));
+    if(!h.length)return;
+    html+='<div class="user-section"><div class="user-head"><b>👤 '+u.name+'</b><span class="muted">'+h.length+' completed</span></div>';
+    h.forEach((x,i)=>{
+      html+='<div class="row"><div><b>'+opName(x.operation)+'</b><div class="muted">'+formatDate(x.date||x.created)+' • '+(x.total||0)+' questions • ✓ '+(x.n||0)+' • ✗ '+(x.wrong||0)+' • — '+(x.notAnswered||0)+'</div></div><div style="display:flex;align-items:center;gap:8px"><b>'+((x.a||0))+'%</b><button class="danger" data-void-user="'+u.id+'" data-void-index="'+i+'">🚫 Void</button></div></div>';
+    });
+    html+='</div>';
+  });
+  $("pastList").innerHTML=html||'<div class="empty">No completed worksheets found.</div>';
+  document.querySelectorAll("[data-void-user]").forEach(b=>b.onclick=()=>voidPast(b.dataset.voidUser,Number(b.dataset.voidIndex)));
+}
+function renderUsers(){
+  const us=users().filter(u=>u.active!==false);
+  $("userTabs").innerHTML=us.map(u=>'<button class="secondary user-tab '+(u.id===activeUser?"active":"")+'" data-tab-user="'+u.id+'">'+u.name+'</button>').join("");
+  if(!activeUser && us.length)activeUser=us[0].id;
+  if(activeUser)showUser(activeUser);
+  document.querySelectorAll("[data-tab-user]").forEach(b=>b.onclick=()=>showUser(b.dataset.tabUser));
+}
+function showUser(uid){
+  activeUser=uid;
+  const u=users().find(x=>x.id===uid);if(!u)return;
+  const h=history(uid).slice().sort((a,b)=>String(b.date||"").localeCompare(String(a.date||"")));
+  const p=allPending().filter(x=>(x.userId||"guest")===uid);
+  const avg=h.length?Math.round(h.reduce((s,x)=>s+(x.a||0),0)/h.length):0;
+  $("userDetails").innerHTML='<div class="stats"><div class="stat"><b>'+h.length+'</b><span class="muted">Completed</span></div><div class="stat"><b>'+p.length+'</b><span class="muted">Pending</span></div><div class="stat"><b>'+avg+'%</b><span class="muted">Average</span></div><div class="stat"><b>'+h.reduce((s,x)=>s+(x.n||0),0)+'</b><span class="muted">Correct</span></div></div>'+
+    '<div class="notice">👤 <b>'+u.name+'</b> — all worksheets below belong to this user.</div>'+
+    (p.length?'<h3>⏳ Pending</h3>'+p.map(x=>'<div class="row"><div><b>'+opName(x.operation)+'</b><div class="muted">'+formatDate(x.created||x.date)+' • '+x.total+' questions</div></div><button class="primary" data-review="'+x.id+'">Review</button></div>').join(""):'')+
+    '<h3>📚 Completed</h3>'+
+    (h.length?h.map((x,i)=>'<div class="row"><div><b>'+opName(x.operation)+'</b><div class="muted">'+formatDate(x.date)+' • '+x.total+' questions • ✓ '+(x.n||0)+' • ✗ '+(x.wrong||0)+' • — '+(x.notAnswered||0)+'</div></div><div style="display:flex;gap:7px;align-items:center"><b>'+x.a+'%</b><button class="danger" data-void-user="'+uid+'" data-void-index="'+i+'">Void</button></div></div>').join(""):'<div class="empty">No completed worksheets.</div>');
+  document.querySelectorAll("[data-review]").forEach(b=>b.onclick=()=>openReview(b.dataset.review));
+  document.querySelectorAll("[data-void-user]").forEach(b=>b.onclick=()=>voidPast(b.dataset.voidUser,Number(b.dataset.voidIndex)));
+  document.querySelectorAll("[data-tab-user]").forEach(b=>b.classList.toggle("active",b.dataset.tabUser===uid));
+}
+function openReview(id){
+  const s=allPending().find(x=>x.id===id);
+  if(!s)return;
+  currentReview=s;
+  page("review");
+
+  const uid=s.userId||"guest";
+  const answers=s.answers||[];
+  $("reviewMeta").innerHTML=
+    '👤 <b>'+userName(uid,s)+'</b> • '+opName(s.operation||"mixed")+
+    ' • '+formatDate(s.created||s.date)+' • '+(s.total||answers.length||0)+' questions';
+
+  $("reviewQuestions").innerHTML=answers.length ? answers.map((a,i)=>{
+    const filled = a.filled===true || (a.filled===undefined && a.ocr!==undefined && String(a.ocr).trim()!=="");
+    const status=(a.status==="wrong")?"wrong":(filled?"correct":"not_answered");
+    const expected=(a.ans===undefined||a.ans===null)?"—":a.ans;
+    const childRead=(a.ocr!==undefined && a.ocr!=="") ? a.ocr : "—";
+    const handwriting=a.image
+      ? '<img src="'+a.image+'" alt="Child handwriting" style="width:72px;height:54px;object-fit:contain;border:1px solid #d0d5dd;border-radius:7px;background:#fff">'
+      : '<div style="width:72px;height:54px;border:1px dashed #d0d5dd;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#667085;font-size:10px">No image</div>';
+
+    return '<div class="adminReviewQuestion reviewOneRow" style="display:grid;grid-template-columns:42px minmax(105px,1fr) 78px 90px 125px minmax(215px,auto);gap:8px;align-items:center;border:1px solid #e1e5eb;border-radius:10px;padding:7px 9px;margin:6px 0;background:#fff">'+
+      '<div style="font-size:12px;font-weight:700;color:#667085">#'+(i+1)+'</div>'+
+      '<div style="font-size:19px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(a.problem||"Problem "+(i+1))+'</div>'+
+      '<div style="text-align:center"><div style="font-size:9px;color:#667085">EXPECTED</div><div style="font-size:22px;font-weight:800">'+expected+'</div></div>'+
+      '<div style="text-align:center"><div style="font-size:9px;color:#667085">CHILD</div>'+handwriting+'</div>'+
+      '<div style="font-size:11px;color:#667085;white-space:nowrap">OCR: <b>'+childRead+'</b></div>'+
+      '<div data-choice="'+i+'" style="display:flex;gap:4px;flex-wrap:nowrap">'+
+        '<button type="button" class="secondary reviewStatusBtn '+(status==="correct"?"selectedStatus":"")+'" data-status="correct">✓ Correct</button>'+
+        '<button type="button" class="secondary reviewStatusBtn '+(status==="wrong"?"selectedStatus":"")+'" data-status="wrong">✗ Wrong</button>'+
+        '<button type="button" class="secondary reviewStatusBtn '+(status==="not_answered"?"selectedStatus":"")+'" data-status="not_answered">— N/A</button>'+
+      '</div>'+
+    '</div>';
+  }).join("") : '<div class="empty">No answer records were saved with this worksheet.</div>';
+
+  document.querySelectorAll("[data-choice]").forEach(group=>{
+    const i=Number(group.dataset.choice);
+    group.querySelectorAll("[data-status]").forEach(btn=>{
+      btn.onclick=()=>{
+        const value=btn.dataset.status;
+        if(answers[i])answers[i].status=value;
+        group.querySelectorAll("[data-status]").forEach(b=>b.classList.remove("selectedStatus"));
+        btn.classList.add("selectedStatus");
+      };
+    });
+  });
+}
+function removePending(id){
+  localStorage.setItem("poorviPendingSubmissions",JSON.stringify(allPending().filter(x=>x.id!==id)));
+}
+
+async function recognizeCurrentWorksheet(){
+  if(!currentReview)return;
+  const btn=$("aiRecognizeBtn");
+  if(!btn)return;
+
+  const answers=currentReview.answers||[];
+  if(!answers.length){
+    alert("There are no saved handwriting answers in this worksheet.");
+    return;
+  }
+
+  // The browser must never contain an OpenAI API key. This calls a secure
+  // same-origin endpoint that can be implemented as a serverless function.
+  btn.disabled=true;
+  btn.textContent="⏳ Recognizing…";
+
+  try{
+    const response=await fetch("/api/recognize",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        worksheetId:currentReview.id,
+        operation:currentReview.operation||"mixed",
+        answers:answers.map((a,i)=>({
+          index:i,
+          problem:a.problem||"",
+          expected:a.ans,
+          image:a.image||null
+        }))
+      })
+    });
+
+    if(!response.ok){
+      throw new Error("Recognition service is not configured yet.");
+    }
+
+    const result=await response.json();
+    const suggestions=Array.isArray(result.answers)?result.answers:[];
+
+    suggestions.forEach((r,i)=>{
+      const a=answers[i];
+      if(!a)return;
+      if(r.answer!==undefined && r.answer!==null && r.answer!==""){
+        a.ocr=String(r.answer);
+        const expected=String(a.ans);
+        a.filled=String(r.answer).trim()!==""; a.status=a.filled?"correct":"not_answered";
+      }
+    });
+
+    // Re-render the review with AI suggestions, while preserving the parent's
+    // ability to change every status manually.
+    openReview(currentReview.id);
+    alert("AI suggestions added. Please review them before saving.");
+  }catch(err){
+    alert("AI recognition is not available yet. The secure /api/recognize service must be connected before this button can recognize handwriting.");
+  }finally{
+    const b=$("aiRecognizeBtn");
+    if(b){b.disabled=false;b.textContent="✨ Recognize Answers";}
+  }
+}
+
+function saveReview(){
+  if(!currentReview)return;
+
+  const answers=currentReview.answers||[];
+  document.querySelectorAll("[data-choice]").forEach(group=>{
+    const i=Number(group.dataset.choice);
+    const selected=group.querySelector("[data-status].selectedStatus");
+    if(selected && answers[i])answers[i].status=selected.dataset.status;
+  });
+
+  answers.forEach(a=>{
+    if(a.filled===undefined){
+      a.filled=(a.ocr!==undefined && String(a.ocr).trim()!=="");
+    }
+    if(!["correct","wrong","not_answered"].includes(a.status)){
+      a.status=a.filled?"correct":"not_answered";
+    }
+  });
+
+  let correct=0,wrong=0,notAnswered=0;
+  answers.forEach(a=>{
+    if(a.status==="correct")correct++;
+    else if(a.status==="wrong")wrong++;
+    else notAnswered++;
+  });
+
+  const total=answers.length||currentReview.total||0;
+  const score=total?Math.round(correct/total*100):0;
+  const uid=(currentReview.userId&&currentReview.userId!=="guest")?currentReview.userId:(users().find(u=>u&&u.name===currentReview.userName&&u.role!=="admin")||{}).id||"guest";
+  currentReview.userId=uid;
+  const owner=users().find(u=>u&&u.id===uid);
+  if(owner)currentReview.userName=owner.name;
+  const h=history(uid);
+
+  h.push({
+    id:currentReview.id,
+    date:currentReview.date||new Date().toISOString().slice(0,10),
+    created:currentReview.created||Date.now(),
+    operation:currentReview.operation||"mixed",
+    range:currentReview.range||"",
+    total,
+    n:correct,
+    wrong,
+    notAnswered,
+    a:score,
+    et:currentReview.elapsed||0,
+    reviewed:true,
+    userId:uid,
+    userName:userName(uid,currentReview)
+  });
+
+  saveHistory(uid,h.slice(-200));
+  removePending(currentReview.id);
+
+  currentReview=null;
+  alert("Review saved. Score: "+score+"%");
+  page("pending");
+  renderPending();
+  renderDashboard();
+}
+function voidPending(){
+  if(!currentReview)return;
+  if(!confirm("Void this submitted worksheet? It will not be scored."))return;
+  const uid=currentReview.userId||"guest";
+  const v=JSON.parse(localStorage.getItem("poorviVoidedSubmissions")||"[]");
+  v.push({id:currentReview.id,userId:uid,userName:userName(uid,currentReview),date:currentReview.date,operation:currentReview.operation,reason:"Voided by Admin",voidedAt:Date.now()});
+  localStorage.setItem("poorviVoidedSubmissions",JSON.stringify(v.slice(-200)));
+  removePending(currentReview.id);
+  currentReview=null;
+  alert("Worksheet voided.");
+  page("pending");renderPending();renderDashboard();
+}
+function voidPast(uid,index){
+  const h=history(uid),x=h[index];if(!x)return;
+  if(!confirm("Void this completed worksheet for "+userName(uid,x)+"?"))return;
+  const v=JSON.parse(localStorage.getItem("poorviVoidedSubmissions")||"[]");
+  v.push({id:x.id,userId:uid,userName:userName(uid,x),date:x.date,operation:x.operation,reason:"Voided by Admin",voidedAt:Date.now()});
+  localStorage.setItem("poorviVoidedSubmissions",JSON.stringify(v.slice(-200)));
+  h.splice(index,1);saveHistory(uid,h);
+  renderPast();renderUsers();renderDashboard();
+}
+function enter(){
+  if($("pin").value!==ADMIN_PIN){$("loginError").textContent="Incorrect Admin PIN.";return}
+  $("login").classList.add("hidden");$("app").classList.remove("hidden");
+  renderDashboard();
+}
+$("loginBtn").onclick=enter;
+$("pin").onkeydown=e=>{if(e.key==="Enter")enter()};
+document.querySelectorAll("[data-page]").forEach(b=>b.onclick=()=>{
+  page(b.dataset.page);
+  if(b.dataset.page==="dashboard")renderDashboard();
+  if(b.dataset.page==="pending")renderPending();
+  if(b.dataset.page==="past")renderPast();
+  if(b.dataset.page==="users")renderUsers();
+});
+$("saveReview").onclick=saveReview;
+$("aiRecognizeBtn").onclick=recognizeCurrentWorksheet;
+$("voidPending").onclick=voidPending;
+$("backToPending").onclick=()=>{page("pending");renderPending()};
+
+// Authentication fallback: bind after DOM is ready as well as the direct
+// handler above. This protects against browser timing/event quirks.
+document.addEventListener("DOMContentLoaded",function(){
+  const btn=$("loginBtn"), pin=$("pin");
+  if(btn)btn.addEventListener("click",enter);
+  if(pin)pin.addEventListener("keydown",function(e){
+    if(e.key==="Enter"){e.preventDefault();enter();}
+  });
+});
+
+/* v1.0 stable Admin PIN binding */
+(function(){
+  const btn=document.getElementById("loginBtn"), pin=document.getElementById("pin"), err=document.getElementById("loginError");
+  function stableAdminLogin(){
+    const value=String(pin&&pin.value||"").trim();
+    if(value!=="2580"){
+      if(err)err.textContent="Incorrect PIN. Please try again.";
+      if(pin)pin.select();
+      return;
+    }
+    // Use the page's original successful login function if available.
+    if(typeof enter==="function"){enter();return}
+    const modal=document.getElementById("login"), app=document.getElementById("app");
+    if(modal)modal.classList.add("hidden");
+    if(app)app.classList.remove("hidden");
+  }
+  if(btn)btn.addEventListener("click",stableAdminLogin);
+  if(pin)pin.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();stableAdminLogin()}});
+})();
+</script>
+<script id="submissionIdentityRepair">
+(function(){
+  try{
+    const key="poorviPendingSubmissions";
+    const list=JSON.parse(localStorage.getItem(key)||"[]");
+    if(!Array.isArray(list))return;
+    const names={};
+    const users=JSON.parse(localStorage.getItem("poorviMathUsers")||"[]");
+    if(Array.isArray(users))users.forEach(u=>{if(u&&u.name)names[String(u.name).trim().toLowerCase()]=u.id});
+    let changed=false;
+    list.forEach(s=>{
+      if(!s||s.userId||!s.userName)return;
+      const id=names[String(s.userName).trim().toLowerCase()];
+      if(id){s.userId=id;changed=true}
+    });
+    if(changed)localStorage.setItem(key,JSON.stringify(list));
+  }catch(e){}
+})();
+</script><div id="kidsMathVersionBadge" aria-label="Production version">Production v1.2.2</div><script id="kidsMathSupabaseAdminGuard">
+(function(){
+  async function enforceAdmin(){
+    if(sessionStorage.getItem("poorviAuthMode")!=="supabase")return;
+    const sb=window.kidsMathSupabase;if(!sb)return;
+    const {data:{user}}=await sb.auth.getUser();
+    if(!user){sessionStorage.clear();location.replace("login.html");return;}
+    const {data:m}=await sb.from("auth_users").select("app_user_id").eq("auth_user_id",user.id).single();
+    if(!m){await sb.auth.signOut();sessionStorage.clear();location.replace("login.html");return;}
+    const {data:u}=await sb.from("kids_users").select("*").eq("id",m.app_user_id).single();
+    if(!u||u.role!=="admin"){alert("Admin access required.");await sb.auth.signOut();sessionStorage.clear();location.replace("login.html");return;}
+  }
+  window.addEventListener("load",()=>setTimeout(enforceAdmin,250));
+})();
+</script></body>
+</html>
