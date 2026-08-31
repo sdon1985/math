@@ -79,10 +79,25 @@ body{margin:0;min-height:100vh;display:grid;place-items:center;padding:20px;back
 
   <div id="error" class="error"></div>
   <button id="backLogin" class="back hidden" type="button">← Back to Login</button>
-  <div class="footer">Production 3.0.4 • Supabase Auth</div>
+  <div class="footer">Production 3.0.5 • Supabase Auth</div>
 </main>
 
 <script>
+(async function(){
+  try{
+    if(location.hash.includes("access_token=")){
+      const u=await KMT.finishEmailConfirmation();
+      if(u){
+        sessionStorage.setItem("poorviCurrentUser",u.id);
+        sessionStorage.setItem("poorviDisplayName",u.name);
+        sessionStorage.setItem("poorviRole",u.role);
+        sessionStorage.setItem("poorviAuthMode","supabase");
+        location.replace("index.html");
+        return;
+      }
+    }
+  }catch(e){console.error("Email confirmation:",e);}
+})();
 (function(){
   let selected="poorvi";
   const pin=document.getElementById("pin");
@@ -182,7 +197,15 @@ body{margin:0;min-height:100vh;display:grid;place-items:center;padding:20px;back
     const b=document.getElementById("register");
     b.disabled=true; b.textContent="Creating account…"; err.textContent="";
     try{
-      const u=await KMT.registerStudent(name,email,p);
+      const result=await KMT.registerStudent(name,email,p);
+      const u=result.user||result;
+      if(result.confirmed===false){
+        err.style.color="#067647";
+        err.textContent="Account created. Check your email, confirm it, then return to Login.";
+        b.textContent="Account Created ✓";
+        b.disabled=true;
+        return;
+      }
       sessionStorage.setItem("poorviCurrentUser",u.id);
       sessionStorage.setItem("poorviDisplayName",u.name);
       sessionStorage.setItem("poorviRole","student");

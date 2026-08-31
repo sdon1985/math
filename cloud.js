@@ -43,23 +43,84 @@
     if(displayName.length<2)throw Error('Enter the student name.');
     if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw Error('Enter a valid email address.');
     if(!/^\d{4}$/.test(pin))throw Error('Student PIN must be 4 digits.');
-    // Supabase requires a password of at least 6 characters. The student
-    // still chooses/uses a simple 4-digit PIN; the longer value is internal.
-    const d=await auth('signup',{email,password:authPassword(pin),data:{display_name:displayName,role:'student'}});
-    if(!d?.user?.id)throw Error('Registration did not create the Auth account.');
-    const authId=d.user.id;
-    // Generate a stable application ID; the database RPC creates both the
-    // student profile and the Auth -> app-user mapping atomically.
+
     const base=displayName.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'').slice(0,24)||'student';
+    const pendingKey='kmtPendingRegistration';
+    const redirect=(C.baseUrl||location.origin+'/math/').replace(/\/?$/,'/')+'login.html';
+
+    // Save enough non-secret information to finish the database mapping after
+    // Supabase email confirmation redirects back to GitHub Pages.
+    localStorage.setItem(pendingKey,JSON.stringify({displayName,email,base,createdAt:Date.now()}));
+
+    // Supabase Auth password is internal; the student continues to use 4 digits.
+    const d=await auth('signup?redirect_to='+encodeURIComponent(redirect),{
+      email,
+      password:authPassword(pin),
+      data:{display_name:displayName,role:'student'}
+    });
+
+    if(!d?.user?.id)throw Error('Supabase created no Auth user. Check Auth settings and try again.');
+
+    const authId=d.user.id;
     const appId=base+'_'+authId.replace(/-/g,'').slice(0,8);
+
+    // Create the application user + UUID mapping immediately. This is safe
+    // even when email confirmation is enabled.
     await rpc('register_student',{p_auth_user_id:authId,p_app_user_id:appId,p_display_name:displayName});
+
+    localStorage.setItem(pendingKey,JSON.stringify({displayName,email,appId,authId,createdAt:Date.now()}));
+
     if(d.access_token){
       S.access=d.access_token;S.refresh=d.refresh_token||null;S.user=d.user;save();
       const p=await api('/rest/v1/kids_users?select=id,display_name,role&id=eq.'+encodeURIComponent(appId));
-      if(p[0]){S.user={authId,id:appId,name:p[0].display_name,role:p[0].role,email};save();return S.user}
+      if(p[0]){S.user={authId,id:appId,name:p[0].display_name,role:p[0].role,email};save();return {user:S.user,confirmed:true}}
     }
-    return {id:appId,name:displayName,role:'student',authId,email};
+
+    // Email confirmation is enabled: do not pretend the student is logged in.
+    return {id:appId,name:displayName,role:'student',authId,email,confirmed:false};
   }
+
+  async function finishEmailConfirmation(){
+    const hash=new URLSearchParams(location.hash.replace(/^#/,''));
+    const access=hash.get('access_token');
+    const refreshToken=hash.get('refresh_token');
+    if(!access)return null;
+
+    S.access=access;S.refresh=refreshToken;save();
+    const me=await authUser();
+    if(!me?.id)throw Error('Email confirmation returned no Auth user.');
+
+    const pending=JSON.parse(localStorage.getItem('kmtPendingRegistration')||'null');
+    if(pending?.displayName){
+      const appId=pending.appId || ((pending.base||'student')+'_'+me.id.replace(/-/g,'').slice(0,8));
+      try{
+        await rpc('register_student',{p_auth_user_id:me.id,p_app_user_id:appId,p_display_name:pending.displayName});
+        localStorage.setItem('kmtPendingRegistration',JSON.stringify({...pending,appId,authId:me.id}));
+      }catch(e){
+        // Ignore duplicate/idempotent mapping errors and verify below.
+        console.warn('Registration mapping:',e);
+      }
+    }
+
+    const map=await api('/rest/v1/auth_users?select=app_user_id&auth_user_id=eq.'+encodeURIComponent(me.id));
+    if(!map[0])throw Error('Email confirmed, but the student account mapping was not created. Run the registration SQL once.');
+    const p=await api('/rest/v1/kids_users?select=id,display_name,role&id=eq.'+encodeURIComponent(map[0].app_user_id));
+    if(!p[0])throw Error('Email confirmed, but the student profile was not found.');
+
+    S.user={authId:me.id,id:p[0].id,name:p[0].display_name,role:p[0].role,email:me.email};save();
+    localStorage.removeItem(pendingKey);
+    history.replaceState({},document.title,location.pathname+location.search);
+    return S.user;
+  }
+
+  async function authUser(){
+    const c=cfg();load();
+    const r=await fetch(c.supabaseUrl+'/auth/v1/user',{headers:{apikey:c.supabaseAnonKey,Authorization:'Bearer '+S.access}});
+    const text=await r.text();
+    if(!r.ok)throw Error(text||('Auth user HTTP '+r.status));
+    return JSON.parse(text);
+  }
+
   async function logout(){load();try{if(S.access)await fetch(cfg().supabaseUrl+'/auth/v1/logout',{method:'POST',headers:{apikey:cfg().supabaseAnonKey,Authorization:'Bearer '+S.access}})}catch(e){}S.access=S.refresh=S.user=null;sessionStorage.removeItem(key)}
   async function me(){load();if(!S.access)return null;try{const p=await api('/rest/v1/kids_users?select=id,display_name,role&id=eq.'+encodeURIComponent(S.user?.id||''));return p[0]?{authId:S.user.authId,id:p[0].id,name:p[0].display_name,role:p[0].role}:null}catch(e){return null}}
   async function submit(s){const u=await me();if(!u)throw Error('Cloud session expired. Please login again.');const row={id:s.id,user_id:u.id,user_name:u.name,submitted_at:s.submitted_at||new Date().toISOString(),operation:s.operation,range:s.range,total:s.total,elapsed:s.elapsed,status:'pending',submission:s};await api('/rest/v1/worksheets',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(row)});return true}
@@ -168,5 +229,5 @@
 
   async function worksheets(uid){return api('/rest/v1/worksheets?select=*&user_id=eq.'+encodeURIComponent(uid)+'&order=submitted_at.desc')}
   async function allWorksheets(){return api('/rest/v1/worksheets?select=*&order=submitted_at.desc')}
-  window.KMT={load,login,loginWithEmail,registerStudent,logout,me,submit,pending,reviewed,progress,progressFromRows,worksheets,allWorksheets,voidWorksheet,api};
+  window.KMT={finishEmailConfirmation,load,login,loginWithEmail,registerStudent,logout,me,submit,pending,reviewed,progress,progressFromRows,worksheets,allWorksheets,voidWorksheet,api};
 })();
