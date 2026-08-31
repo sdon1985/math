@@ -56,7 +56,7 @@
       await rpc('register_parent',{p_auth_user_id:d.user.id,p_display_name:displayName,p_email:d.user.email||email});
       p=await api('/rest/v1/parent_users?select=auth_user_id,display_name,email&auth_user_id=eq.'+encodeURIComponent(d.user.id));
     }
-    if(!p[0]){await logout();throw Error('Parent profile could not be created. Run the Production 3.0.8 parent SQL migration in Supabase.');}
+    if(!p[0]){await logout();throw Error('Parent profile could not be created. Run the Production 3.1.0 parent SQL migration in Supabase.');}
     S.user={authId:d.user.id,id:d.user.id,name:p[0].display_name,role:'parent',email:p[0].email||email};save();return S.user;
   }
 
@@ -104,12 +104,17 @@
 
   async function parentStudents(){
     if(S.user?.role!=="parent")throw Error('Parent login required.');
-    return api('/rest/v1/parent_student_links?select=student_id,enrolled_at,kids_users!inner(id,display_name)&parent_auth_user_id=eq.'+encodeURIComponent(S.user.authId)+'&order=enrolled_at.desc');
+    return rpc('parent_students',{});
   }
 
   async function parentProgress(studentId){
     if(S.user?.role!=="parent")throw Error('Parent login required.');
-    return api('/rest/v1/progress?select=*&user_id=eq.'+encodeURIComponent(studentId)+'&order=date.desc');
+    return rpc('parent_progress',{p_student_id:String(studentId)});
+  }
+
+  async function adminProgress(){
+    if(S.user?.role!=="admin")throw Error('Admin access required.');
+    return rpc('admin_progress_all',{});
   }
 
   function stableStudentId(email){
@@ -355,11 +360,13 @@
   }
 
   async function progress(uid){
-    const rows=await worksheets(uid);
-    return progressFromRows(rows,uid);
+    const meUser=await me();
+    if(!meUser)throw Error('Cloud session expired. Please login again.');
+    if(uid && String(uid)!==String(meUser.id))throw Error('Student progress access denied.');
+    return rpc('my_progress',{});
   }
 
   async function worksheets(uid){return api('/rest/v1/worksheets?select=*&user_id=eq.'+encodeURIComponent(uid)+'&order=submitted_at.desc')}
   async function allWorksheets(){return api('/rest/v1/worksheets?select=*&order=submitted_at.desc')}
-  window.KMT={finishEmailConfirmation,finishParentEmailConfirmation,load,login,loginWithEmail,registerStudent,registerParent,parentLogin,enrollStudent,parentStudents,parentProgress,deleteStudentAccount,logout,me,submit,pending,reviewed,progress,progressFromRows,worksheets,allWorksheets,voidWorksheet,api};
+  window.KMT={finishEmailConfirmation,finishParentEmailConfirmation,load,login,loginWithEmail,registerStudent,registerParent,parentLogin,enrollStudent,parentStudents,parentProgress,adminProgress,deleteStudentAccount,logout,me,submit,pending,reviewed,progress,progressFromRows,worksheets,allWorksheets,voidWorksheet,api};
 })();
