@@ -37,6 +37,24 @@
     S.user={authId:d.user.id,id:p[0].id,name:p[0].display_name,role:p[0].role,email:String(email)};save();return S.user;
   }
   async function loginWithEmail(email,pin){return finishLogin(email.trim().toLowerCase(),pin,null)}
+  function stableStudentId(email){
+    // Stable application ID derived from email. This allows a deleted student
+    // to re-register with the same email and recover the same app user ID.
+    const s=String(email||'').trim().toLowerCase();
+    let h1=0x811c9dc5,h2=0x9e3779b9;
+    for(let i=0;i<s.length;i++){
+      const c=s.charCodeAt(i);
+      h1=Math.imul(h1^c,16777619)>>>0;
+      h2=Math.imul(h2^(c+(i&255)),2246822519)>>>0;
+    }
+    return 'student_'+h1.toString(16).padStart(8,'0')+h2.toString(16).padStart(8,'0');
+  }
+
+  async function deleteStudentAccount(appUserId){
+    if(!appUserId)throw Error('Select a student account to delete.');
+    return rpc('admin_delete_student',{p_app_user_id:String(appUserId)});
+  }
+
   async function registerStudent(displayName,email,pin){
     displayName=String(displayName||'').trim();
     email=String(email||'').trim().toLowerCase();
@@ -97,7 +115,7 @@
       throw Error('Supabase did not create a new Auth user. Check that "Allow new users to sign up" is enabled, then try a new email address.');
     }
 
-    const appId=base+'_'+authId.replace(/-/g,'').slice(0,8);
+    const appId=stableStudentId(email);
     try{
       await rpc('register_student',{p_auth_user_id:authId,p_app_user_id:appId,p_display_name:displayName});
     }catch(e){
@@ -131,7 +149,7 @@
 
     const pending=JSON.parse(localStorage.getItem('kmtPendingRegistration')||'null');
     if(pending?.displayName){
-      const appId=pending.appId || ((pending.base||'student')+'_'+me.id.replace(/-/g,'').slice(0,8));
+      const appId=pending.appId || stableStudentId(me.email||pending.email);
       try{
         await rpc('register_student',{p_auth_user_id:me.id,p_app_user_id:appId,p_display_name:pending.displayName});
         localStorage.setItem('kmtPendingRegistration',JSON.stringify({...pending,appId,authId:me.id}));
@@ -268,5 +286,5 @@
 
   async function worksheets(uid){return api('/rest/v1/worksheets?select=*&user_id=eq.'+encodeURIComponent(uid)+'&order=submitted_at.desc')}
   async function allWorksheets(){return api('/rest/v1/worksheets?select=*&order=submitted_at.desc')}
-  window.KMT={finishEmailConfirmation,load,login,loginWithEmail,registerStudent,logout,me,submit,pending,reviewed,progress,progressFromRows,worksheets,allWorksheets,voidWorksheet,api};
+  window.KMT={finishEmailConfirmation,load,login,loginWithEmail,registerStudent,deleteStudentAccount,logout,me,submit,pending,reviewed,progress,progressFromRows,worksheets,allWorksheets,voidWorksheet,api};
 })();
