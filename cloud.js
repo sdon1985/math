@@ -38,8 +38,20 @@
   }
   async function loginWithEmail(email,pin){return finishLogin(email.trim().toLowerCase(),pin,null)}
   async function syncStudentPin(pin){
-    if(!S.user?.id||S.user.role!=="user"||!/^\d{4}$/.test(String(pin)))return;
-    try{await rpc('set_student_pin_hash',{p_app_user_id:S.user.id,p_pin:String(pin)});}catch(e){console.warn('PIN sync:',e);}
+    if(!S.user?.id||S.user.role!=="user"||!/^\d{4}$/.test(String(pin)))return false;
+    let lastError=null;
+    for(let attempt=1;attempt<=2;attempt++){
+      try{
+        const ok=await rpc('set_student_pin_hash',{p_app_user_id:S.user.id,p_pin:String(pin)});
+        if(ok===true||ok?.[0]===true||ok?.result===true)return true;
+        lastError=new Error('PIN synchronization did not return success.');
+      }catch(e){
+        lastError=e;
+        await new Promise(r=>setTimeout(r,300));
+      }
+    }
+    console.warn('PIN sync failed:',lastError);
+    return false;
   }
 
   function parentPassword(password){return String(password||'');}
@@ -424,5 +436,5 @@
 
   async function worksheets(uid){return api('/rest/v1/worksheets?select=*&user_id=eq.'+encodeURIComponent(uid)+'&order=submitted_at.desc')}
   async function allWorksheets(){return api('/rest/v1/worksheets?select=*&order=submitted_at.desc')}
-  window.KMT={finishEmailConfirmation,finishParentEmailConfirmation,load,login,loginWithEmail,registerStudent,registerParent,parentLogin,enrollStudent,parentStudents,parentProgress,parentWorksheets,adminProgress,adminParentOverview,adminParentSubscribe,adminParentUnsubscribe,adminDeleteParent,deleteStudentAccount,logout,me,submit,pending,reviewed,progress,progressFromRows,worksheets,allWorksheets,voidWorksheet,api};
+  window.KMT={finishEmailConfirmation,finishParentEmailConfirmation,load,login,loginWithEmail,registerStudent,registerParent,parentLogin,enrollStudent,parentStudents,parentProgress,parentWorksheets,adminProgress,adminParentOverview,adminParentSubscribe,adminParentUnsubscribe,adminDeleteParent,deleteStudentAccount,logout,me,submit,pending,reviewed,progress,progressFromRows,worksheets,allWorksheets,voidWorksheet,syncStudentPin,api};
 })();
