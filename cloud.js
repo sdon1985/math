@@ -56,7 +56,7 @@
       await rpc('register_parent',{p_auth_user_id:d.user.id,p_display_name:displayName,p_email:d.user.email||email});
       p=await api('/rest/v1/parent_users?select=auth_user_id,display_name,email&auth_user_id=eq.'+encodeURIComponent(d.user.id));
     }
-    if(!p[0]){await logout();throw Error('Parent profile could not be created. Run the Production 3.1.0 parent SQL migration in Supabase.');}
+    if(!p[0]){await logout();throw Error('Parent profile could not be created. Run the Production 3.2.0 parent SQL migration in Supabase.');}
     S.user={authId:d.user.id,id:d.user.id,name:p[0].display_name,role:'parent',email:p[0].email||email};save();return S.user;
   }
 
@@ -95,26 +95,77 @@
     return S.user;
   }
 
+  async function currentAuthUser(){
+    load();
+    if(!S.access)throw Error('Please log in again.');
+    const c=cfg();
+    const r=await fetch(c.supabaseUrl+'/auth/v1/user',{headers:{apikey:c.supabaseAnonKey,Authorization:'Bearer '+S.access}});
+    const t=await r.text();
+    if(r.status===401 && await refresh()){
+      const rr=await fetch(c.supabaseUrl+'/auth/v1/user',{headers:{apikey:c.supabaseAnonKey,Authorization:'Bearer '+S.access}});
+      const tt=await rr.text();
+      if(!rr.ok)throw Error(tt||'Session expired. Please log in again.');
+      S.user=JSON.parse(tt);save();return S.user;
+    }
+    if(!r.ok)throw Error(t||'Session expired. Please log in again.');
+    S.user=JSON.parse(t);save();return S.user;
+  }
+
+  async function ensureParentSession(){
+    const au=await currentAuthUser();
+    const p=await api('/rest/v1/parent_users?select=auth_user_id,display_name,email&auth_user_id=eq.'+encodeURIComponent(au.id));
+    if(!p[0]){
+      const name=au.user_metadata?.display_name||au.user_metadata?.name||'Parent';
+      await rpc('register_parent',{p_auth_user_id:au.id,p_display_name:name,p_email:au.email||''});
+      const again=await api('/rest/v1/parent_users?select=auth_user_id,display_name,email&auth_user_id=eq.'+encodeURIComponent(au.id));
+      if(!again[0])throw Error('Parent profile is not available. Run the Production 3.2.0/3.2.0 database migration.');
+      S.user={authId:au.id,id:au.id,name:again[0].display_name,role:'parent',email:again[0].email};save();
+      return S.user;
+    }
+    S.user={authId:au.id,id:au.id,name:p[0].display_name,role:'parent',email:p[0].email};save();
+    return S.user;
+  }
+
   async function enrollStudent(studentId,email,pin){
-    if(S.user?.role!=="parent")throw Error('Parent login required.');
+    await ensureParentSession();
     studentId=String(studentId||'').trim();email=String(email||'').trim().toLowerCase();pin=String(pin||'');
     if(!studentId||!email||!/^\d{4}$/.test(pin))throw Error('Enter student User ID, email ID and 4-digit PIN.');
     return rpc('parent_enroll_student',{p_student_id:studentId,p_student_email:email,p_pin:pin});
   }
 
   async function parentStudents(){
-    if(S.user?.role!=="parent")throw Error('Parent login required.');
+    await ensureParentSession();
     return rpc('parent_students',{});
   }
 
   async function parentProgress(studentId){
-    if(S.user?.role!=="parent")throw Error('Parent login required.');
+    await ensureParentSession();
     return rpc('parent_progress',{p_student_id:String(studentId)});
   }
 
   async function adminProgress(){
     if(S.user?.role!=="admin")throw Error('Admin access required.');
     return rpc('admin_progress_all',{});
+  }
+
+  async function adminParentOverview(){
+    if(S.user?.role!=="admin")throw Error('Admin access required.');
+    return rpc('admin_parent_overview',{});
+  }
+
+  async function adminParentSubscribe(parentAuthUserId,studentId){
+    if(S.user?.role!=="admin")throw Error('Admin access required.');
+    return rpc('admin_parent_subscribe',{p_parent_auth_user_id:String(parentAuthUserId),p_student_id:String(studentId)});
+  }
+
+  async function adminParentUnsubscribe(parentAuthUserId,studentId){
+    if(S.user?.role!=="admin")throw Error('Admin access required.');
+    return rpc('admin_parent_unsubscribe',{p_parent_auth_user_id:String(parentAuthUserId),p_student_id:String(studentId)});
+  }
+
+  async function adminDeleteParent(parentAuthUserId){
+    if(S.user?.role!=="admin")throw Error('Admin access required.');
+    return rpc('admin_delete_parent',{p_parent_auth_user_id:String(parentAuthUserId)});
   }
 
   function stableStudentId(email){
@@ -368,5 +419,5 @@
 
   async function worksheets(uid){return api('/rest/v1/worksheets?select=*&user_id=eq.'+encodeURIComponent(uid)+'&order=submitted_at.desc')}
   async function allWorksheets(){return api('/rest/v1/worksheets?select=*&order=submitted_at.desc')}
-  window.KMT={finishEmailConfirmation,finishParentEmailConfirmation,load,login,loginWithEmail,registerStudent,registerParent,parentLogin,enrollStudent,parentStudents,parentProgress,adminProgress,deleteStudentAccount,logout,me,submit,pending,reviewed,progress,progressFromRows,worksheets,allWorksheets,voidWorksheet,api};
+  window.KMT={finishEmailConfirmation,finishParentEmailConfirmation,load,login,loginWithEmail,registerStudent,registerParent,parentLogin,enrollStudent,parentStudents,parentProgress,adminProgress,adminParentOverview,adminParentSubscribe,adminParentUnsubscribe,adminDeleteParent,deleteStudentAccount,logout,me,submit,pending,reviewed,progress,progressFromRows,worksheets,allWorksheets,voidWorksheet,api};
 })();

@@ -5,11 +5,24 @@
 :root{--bg:#f4f7fb;--card:#fff;--ink:#142033;--muted:#667085;--line:#dfe5ee;--brand:#2563eb;--good:#dcfce7;--danger:#fff0f0;--warn:#fff3cd}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial}button,a{font:inherit}button{cursor:pointer}.wrap{max-width:1180px;margin:auto;padding:16px}.header,.card{background:var(--card);border:1px solid var(--line);border-radius:20px;box-shadow:0 10px 35px #10182812}.header{padding:18px;display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.header h1{margin:0;font-size:27px}.muted{color:var(--muted)}.actions{display:flex;gap:8px;flex-wrap:wrap}.btn{border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px 14px;font-weight:800;min-height:42px;text-decoration:none;color:inherit}.primary{background:var(--brand);color:#fff;border-color:var(--brand)}.danger{background:var(--danger);color:#a32929;border-color:#fecaca}.card{padding:18px;margin-top:12px}.row{padding:12px 0;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.userGroup{border:1px solid var(--line);border-radius:16px;margin-top:10px;overflow:hidden}.userHead{background:#f8fafc;padding:12px 14px;display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}.tag{display:inline-block;padding:4px 8px;border-radius:999px;font-size:12px;font-weight:800;background:var(--warn);color:#7a5200}.reviewTop{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}.question{display:grid;grid-template-columns:42px minmax(200px,1fr) 82px auto;gap:10px;align-items:center;padding:9px 0;border-top:1px solid #edf0f4}.answerImg{width:76px;height:48px;object-fit:contain;border:1px solid #cfd6df;border-radius:7px;background:#fff}.status{display:flex;gap:5px;flex-wrap:nowrap}.status button{padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:#fff;white-space:nowrap;font-size:13px;font-weight:750}.status .selC{background:var(--good);color:#166534;border-color:#86efac}.status .selW{background:#fee2e2;color:#991b1b;border-color:#fecaca}.status .selN{background:#eef2f6;color:#475467}.reviewSummary{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.reviewSummary span{padding:6px 9px;border-radius:999px;background:#f5f7fa;font-size:12px;font-weight:800}.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;margin-top:10px}.stat{background:#f7f9fc;border-radius:12px;padding:11px;text-align:center}.stat b{display:block;font-size:21px}.empty{text-align:center;padding:24px;color:var(--muted)}.hidden{display:none!important}.footer{text-align:center;color:#7b8797;font-size:12px;padding:20px}@media(max-width:700px){.stats{grid-template-columns:repeat(2,1fr)}.question{grid-template-columns:34px 1fr 68px}.question .status{grid-column:1/-1}.status{flex-wrap:wrap}.answerImg{width:66px;height:44px}}
 .userProgressPicker{padding:12px;border:1px solid var(--line);border-radius:12px;background:#f8fafc}.userProgressPicker select{margin-left:8px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff}
 </style></head><body><div class="wrap">
-<header class="header"><div><div style="font-size:12px;font-weight:900;letter-spacing:.12em;color:#64748b">KIDS MATH TEST • PRODUCTION 3.1.0</div><h1>👑 Parent Dashboard</h1><div class="muted">Cloud worksheets, reviews and progress</div></div><div class="actions"><a class="btn" href="index.html">👤 User Page</a><a class="btn" href="login.html">🔐 Switch Login</a><button id="refresh" class="btn">↻ Refresh</button></div></header>
+<header class="header"><div><div style="font-size:12px;font-weight:900;letter-spacing:.12em;color:#64748b">KIDS MATH TEST • PRODUCTION 3.2.0</div><h1>👑 Parent Dashboard</h1><div class="muted">Cloud worksheets, reviews and progress</div></div><div class="actions"><a class="btn" href="index.html">👤 User Page</a><a class="btn" href="login.html">🔐 Switch Login</a><button id="refresh" class="btn">↻ Refresh</button></div></header>
 <section class="card"><div style="font-size:20px;font-weight:900">⏳ Submitted — Under Review</div><div class="muted">New worksheets appear here immediately, including timer auto-submissions.</div><div id="pending"></div></section>
 <section class="card"><div style="font-size:20px;font-weight:900">📊 User Progress</div><div class="muted">Cloud data grouped by user.</div><div id="users"></div></section><section class="card" id="accountCard"><div style="font-size:20px;font-weight:900">🗑️ Student Account Management</div><div class="muted">Permanently delete one student, including worksheets, progress, mapping and Supabase Auth account.</div><div class="userProgressPicker" style="margin-top:10px"><label><b>Student:</b><select id="deleteStudentSelect"><option value="">Select a student…</option></select><button id="deleteStudentBtn" class="btn danger" style="margin-left:10px" disabled>🗑️ Delete Student Account</button></label><div class="muted" style="margin-top:8px;font-size:12px">This is permanent. The same email can be registered again; the application user ID is recreated from the email.</div></div></section>
+<section class="card" id="parentManagementCard">
+<div style="font-size:20px;font-weight:900">👨‍👩‍👧 Parent & Student Subscriptions</div>
+<div class="muted">Admin can subscribe or unsubscribe students for a parent, and permanently delete a parent account. Student accounts and student data are preserved when unsubscribed or when a parent is deleted.</div>
+<div class="userProgressPicker" style="margin-top:12px">
+  <div class="formRow" style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end">
+    <label><b>Parent</b><select id="adminParentSelect"><option value="">Select a parent…</option></select></label>
+    <label><b>Student</b><select id="adminParentStudentSelect"><option value="">Select a student…</option></select></label>
+    <button id="adminSubscribeBtn" class="btn primary" disabled>🔗 Subscribe</button>
+  </div>
+  <div id="adminParentMsg" class="muted" style="margin-top:10px"></div>
+</div>
+<div id="adminParentList" style="margin-top:14px"></div>
+</section>
 <section id="reviewCard" class="card hidden"><div class="reviewTop"><div><div style="font-size:20px;font-weight:900">📝 Review Worksheet</div><div id="reviewMeta" class="muted"></div></div><div class="actions"><button id="save" class="btn primary">✓ Save Review</button><button id="close" class="btn">Close</button></div></div><div id="questions"></div></section>
-<div class="footer">Production 3.1.0 • Supabase Cloud</div></div>
+<div class="footer">Production 3.2.0 • Supabase Cloud</div></div>
 <script>
 (function(){
 let selected=null,allRows=[];const $=id=>document.getElementById(id);const esc=v=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
@@ -17,7 +30,7 @@ const op=x=>({addition:"➕ Addition",subtraction:"➖ Subtraction",multiplicati
 const pendingStatus=r=>['pending','under_review'].includes(String(r.status||'').toLowerCase());
 const approvedStatus=r=>['approved','reviewed','complete'].includes(String(r.status||'').toLowerCase());
 async function guard(){try{if(sessionStorage.getItem("poorviAuthMode")!=="supabase")return location.replace("login.html");const u=await KMT.me();if(!u||u.role!=="admin"){await KMT.logout();sessionStorage.clear();return location.replace("login.html")}sessionStorage.setItem("poorviDisplayName",u.name);await load()}catch(e){console.error(e);$("pending").innerHTML='<div class="empty">Unable to load cloud data. Please refresh or login again.</div>'}}
-async function load(){allRows=await KMT.allWorksheets();renderPending();renderSubmitted();await renderUsers()}
+async function load(){allRows=await KMT.allWorksheets();renderPending();renderSubmitted();await renderUsers();await renderParentManagement()}
 function rowHtml(r,reviewLabel){return '<div class="row"><div><b>'+op(r.operation)+'</b> <span class="tag">'+reviewLabel+'</span><div class="muted">'+new Date(r.submitted_at).toLocaleString()+' • '+(r.total||0)+' questions'+(r.range?' • '+esc(r.range):'')+'</div></div><div class="actions"><button class="btn primary" data-review="'+esc(r.id)+'">'+(approvedStatus(r)?'Edit Review':'Review')+'</button><button class="btn danger" data-void="'+esc(r.id)+'">🚫 Void</button></div></div>'}
 function wireRows(){document.querySelectorAll('[data-review]').forEach(b=>b.onclick=()=>openReview(b.dataset.review));document.querySelectorAll('[data-void]').forEach(b=>b.onclick=()=>voidRow(b.dataset.void))}
 function renderPending(){const rows=allRows.filter(pendingStatus);if(!rows.length){$("pending").innerHTML='<div class="empty">🎉 No worksheets waiting for review.</div>';return}const groups={};rows.forEach(r=>(groups[r.user_id]??=[]).push(r));$("pending").innerHTML=Object.entries(groups).map(([uid,arr])=>'<div class="userGroup"><div class="userHead"><b>👤 '+esc(arr[0].user_name||uid)+'</b><span class="muted">'+arr.length+' worksheet'+(arr.length===1?'':'s')+'</span></div>'+arr.map(r=>rowHtml(r,'⏳ Under Review')).join('')+'</div>').join('');wireRows()}
@@ -63,6 +76,59 @@ async function renderUsers(){
       '<div class="stat"><b>'+s.correct+'</b>Correct</div><div class="stat"><b>'+s.wrong+'</b>Wrong</div><div class="stat"><b>'+s.na+'</b>Not Answered</div></div></div>';
   }
   sel.addEventListener('change',renderSelected);renderSelected();
+}
+
+async function renderParentManagement(){
+  const parentSel=$("adminParentSelect"), studentSel=$("adminParentStudentSelect"), list=$("adminParentList"), msg=$("adminParentMsg");
+  if(!parentSel||!studentSel||!list)return;
+  msg.textContent="Loading parent accounts…";
+  try{
+    const [parents,students]=await Promise.all([
+      KMT.adminParentOverview(),
+      KMT.api('/rest/v1/kids_users?select=id,display_name,role&role=eq.user&order=display_name.asc')
+    ]);
+    const parr=Array.isArray(parents)?parents:[];
+    parentSel.innerHTML='<option value="">Select a parent…</option>'+
+      parr.map(p=>'<option value="'+esc(p.parent_auth_user_id)+'">'+esc((p.display_name||'Parent')+' — '+(p.email||''))+'</option>').join('');
+    studentSel.innerHTML='<option value="">Select a student…</option>'+
+      (Array.isArray(students)?students:[]).map(u=>'<option value="'+esc(u.id)+'">'+esc((u.display_name||u.id)+' — '+u.id)+'</option>').join('');
+    const byParent={};parr.forEach(p=>byParent[p.parent_auth_user_id]=p);
+    function selected(){return byParent[parentSel.value]||null}
+    function updateButton(){ $("adminSubscribeBtn").disabled=!parentSel.value||!studentSel.value; }
+    parentSel.onchange=updateButton;studentSel.onchange=updateButton;updateButton();
+    if(!parr.length){list.innerHTML='<div class="empty">No parent accounts found.</div>';msg.textContent="";return;}
+    list.innerHTML=parr.map(p=>{
+      const subs=Array.isArray(p.students)?p.students:[];
+      const rows=subs.length?subs.map(s=>'<div class="row"><div><b>👤 '+esc(s.display_name||s.student_id)+'</b><div class="muted">User ID: '+esc(s.student_id)+' • '+new Date(s.enrolled_at).toLocaleString()+'</div></div><button class="btn danger" data-unsub-parent="'+esc(p.parent_auth_user_id)+'" data-unsub-student="'+esc(s.student_id)+'">↔ Unsubscribe</button></div>').join(''):'<div class="empty">No students subscribed.</div>';
+      return '<div class="userGroup" style="margin-top:12px"><div class="userHead"><b>👨‍👩‍👧 '+esc(p.display_name||'Parent')+'</b><span class="muted">'+esc(p.email||'')+'</span></div>'+rows+'<div class="actions" style="margin-top:10px"><button class="btn danger" data-delete-parent="'+esc(p.parent_auth_user_id)+'">🗑️ Delete Parent Account</button></div></div>';
+    }).join('');
+    document.querySelectorAll('[data-unsub-parent]').forEach(b=>b.onclick=async()=>{
+      const pid=b.dataset.unsubParent,sid=b.dataset.unsubStudent;
+      if(!confirm('Unsubscribe this student from this parent? The student account and data will remain.'))return;
+      try{await KMT.adminParentUnsubscribe(pid,sid);msg.className='success';msg.textContent='Student unsubscribed.';await renderParentManagement();}
+      catch(e){msg.className='error';msg.textContent=e.message||'Unable to unsubscribe student.';}
+    });
+    document.querySelectorAll('[data-delete-parent]').forEach(b=>b.onclick=async()=>{
+      const pid=b.dataset.deleteParent,p=byParent[pid];
+      const name=p?.display_name||'this parent';
+      if(!confirm('PERMANENTLY DELETE '+name+'?\\n\\nThis deletes the parent Auth account and all parent subscriptions. Student accounts, worksheets and progress remain.'))return;
+      if(prompt('Type DELETE to confirm parent deletion:')!=='DELETE'){alert('Deletion cancelled.');return;}
+      try{await KMT.adminDeleteParent(pid);msg.className='success';msg.textContent='Parent account deleted.';await renderParentManagement();}
+      catch(e){msg.className='error';msg.textContent=e.message||'Unable to delete parent account.';}
+    });
+    $("adminSubscribeBtn").onclick=async()=>{
+      const pid=parentSel.value,sid=studentSel.value;
+      if(!pid||!sid)return;
+      const b=$("adminSubscribeBtn");b.disabled=true;b.textContent='Subscribing…';
+      try{await KMT.adminParentSubscribe(pid,sid);msg.className='success';msg.textContent='Student subscribed to parent.';await renderParentManagement();}
+      catch(e){msg.className='error';msg.textContent=e.message||'Unable to subscribe student.';b.disabled=false;b.textContent='🔗 Subscribe';}
+    };
+    msg.className='muted';msg.textContent='Select a parent and student to create an administrative subscription.';
+  }catch(e){
+    console.error('parent management',e);
+    msg.className='error';msg.textContent=e.message||'Unable to load parent management.';
+    list.innerHTML='';
+  }
 }
 
 function openReview(id){selected=allRows.find(r=>r.id===id&&!['voided'].includes(String(r.status||'').toLowerCase()));if(!selected)return;const answers=Array.isArray(selected.submission?.answers)?selected.submission.answers:[];selected.submission=selected.submission||{};selected.submission.answers=answers;answers.forEach(a=>{if(!['correct','wrong','not_answered'].includes(a.status))a.status=a.filled?'correct':'not_answered'});drawReview()}
