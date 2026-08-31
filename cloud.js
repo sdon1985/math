@@ -47,36 +47,75 @@
     const base=displayName.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'').slice(0,24)||'student';
     const pendingKey='kmtPendingRegistration';
     const redirect=(C.baseUrl||location.origin+'/math/').replace(/\/?$/,'/')+'login.html';
+    const internalPassword=authPassword(pin);
 
-    // Save enough non-secret information to finish the database mapping after
-    // Supabase email confirmation redirects back to GitHub Pages.
+    // Keep only non-secret registration state. Never store the PIN.
     localStorage.setItem(pendingKey,JSON.stringify({displayName,email,base,createdAt:Date.now()}));
 
-    // Supabase Auth password is internal; the student continues to use 4 digits.
-    const d=await auth('signup?redirect_to='+encodeURIComponent(redirect),{
-      email,
-      password:authPassword(pin),
-      data:{display_name:displayName,role:'student'}
-    });
+    let d;
+    try{
+      // `redirect_to` is the REST equivalent of Supabase JS
+      // options.emailRedirectTo.
+      d=await auth('signup?redirect_to='+encodeURIComponent(redirect),{
+        email,
+        password:internalPassword,
+        data:{display_name:displayName,role:'student'}
+      });
+    }catch(e){
+      const msg=String(e?.message||e);
+      if(/already registered|already exists|user.*exist/i.test(msg)){
+        throw Error('This email is already registered. Use Student Login, or register with a different email.');
+      }
+      throw e;
+    }
 
-    if(!d?.user?.id)throw Error('Supabase created no Auth user. Check Auth settings and try again.');
+    // With email confirmation enabled, Supabase returns a user and no session.
+    // With an existing account, Supabase may intentionally return an obfuscated
+    // user object. Never create an application mapping from that object.
+    const authId=d?.user?.id;
+    if(!authId || !d.user.identities || d.user.identities.length===0){
+      // The email may have been used in a previous attempt. Try the real
+      // password login to distinguish a usable existing account from an
+      // unconfirmed account without exposing auth internals.
+      try{
+        const existing=await auth('token?grant_type=password',{email,password:internalPassword});
+        if(existing?.user?.id){
+          throw Error('This email is already registered. Use Student Login instead.');
+        }
+      }catch(e){
+        if(/already registered\. Use Student Login/i.test(String(e?.message||'')))throw e;
+        if(/email not confirmed/i.test(String(e?.message||''))){
+          try{
+            await auth('resend',{type:'signup',email,options:{emailRedirectTo:redirect}});
+            throw Error('This email already has a pending registration. A new confirmation email was sent.');
+          }catch(resendErr){
+            if(/pending registration|already registered/i.test(String(resendErr?.message||'')))throw resendErr;
+            throw Error('This email has a pending registration. Check your email for the confirmation link.');
+          }
+        }
+      }
+      throw Error('Supabase did not create a new Auth user. Check that "Allow new users to sign up" is enabled, then try a new email address.');
+    }
 
-    const authId=d.user.id;
     const appId=base+'_'+authId.replace(/-/g,'').slice(0,8);
-
-    // Create the application user + UUID mapping immediately. This is safe
-    // even when email confirmation is enabled.
-    await rpc('register_student',{p_auth_user_id:authId,p_app_user_id:appId,p_display_name:displayName});
+    try{
+      await rpc('register_student',{p_auth_user_id:authId,p_app_user_id:appId,p_display_name:displayName});
+    }catch(e){
+      throw Error('Auth account was created, but the student profile could not be created. Check the register_student database function. '+String(e?.message||e));
+    }
 
     localStorage.setItem(pendingKey,JSON.stringify({displayName,email,appId,authId,createdAt:Date.now()}));
 
     if(d.access_token){
       S.access=d.access_token;S.refresh=d.refresh_token||null;S.user=d.user;save();
       const p=await api('/rest/v1/kids_users?select=id,display_name,role&id=eq.'+encodeURIComponent(appId));
-      if(p[0]){S.user={authId,id:appId,name:p[0].display_name,role:p[0].role,email};save();return {user:S.user,confirmed:true}}
+      if(p[0]){
+        S.user={authId,id:appId,name:p[0].display_name,role:p[0].role,email};save();
+        localStorage.removeItem(pendingKey);
+        return {user:S.user,confirmed:true};
+      }
     }
 
-    // Email confirmation is enabled: do not pretend the student is logged in.
     return {id:appId,name:displayName,role:'student',authId,email,confirmed:false};
   }
 
