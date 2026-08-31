@@ -48,8 +48,15 @@
     if(!email||password.length<6)throw Error('Enter parent email and password.');
     const d=await auth('token?grant_type=password',{email,password});
     S.access=d.access_token;S.refresh=d.refresh_token;S.user=d.user;save();
-    const p=await api('/rest/v1/parent_users?select=auth_user_id,display_name,email&auth_user_id=eq.'+encodeURIComponent(d.user.id));
-    if(!p[0]){await logout();throw Error('Parent profile was not found. Complete parent registration first.');}
+    let p=await api('/rest/v1/parent_users?select=auth_user_id,display_name,email&auth_user_id=eq.'+encodeURIComponent(d.user.id));
+    // Recovery path: if the parent confirmed email before the parent SQL migration
+    // was installed, create the profile now from Auth metadata.
+    if(!p[0]){
+      const displayName=d.user.user_metadata?.display_name||d.user.user_metadata?.name||'Parent';
+      await rpc('register_parent',{p_auth_user_id:d.user.id,p_display_name:displayName,p_email:d.user.email||email});
+      p=await api('/rest/v1/parent_users?select=auth_user_id,display_name,email&auth_user_id=eq.'+encodeURIComponent(d.user.id));
+    }
+    if(!p[0]){await logout();throw Error('Parent profile could not be created. Run the Production 3.0.8 parent SQL migration in Supabase.');}
     S.user={authId:d.user.id,id:d.user.id,name:p[0].display_name,role:'parent',email:p[0].email||email};save();return S.user;
   }
 
@@ -64,7 +71,7 @@
     let d;
     try{d=await auth('signup?redirect_to='+encodeURIComponent(redirect),{email,password,data:{display_name:displayName,role:'parent'}})}
     catch(e){const msg=String(e?.message||e);if(/already registered|already exists/i.test(msg))throw Error('This parent email is already registered. Use Parent Login.');throw e;}
-    if(!d?.user?.id)throw Error('Supabase did not create the parent Auth account. Check Auth email settings.');
+    if(!d?.user?.id)throw Error('Supabase signup did not return an Auth user. Check Supabase Auth email/password settings and try again.');
     if(d.access_token){
       await rpc('register_parent',{p_auth_user_id:d.user.id,p_display_name:displayName,p_email:email});
       const u={authId:d.user.id,id:d.user.id,name:displayName,role:'parent',email};S.access=d.access_token;S.refresh=d.refresh_token||null;S.user=u;save();localStorage.removeItem(pendingKey);return {user:u,confirmed:true};
