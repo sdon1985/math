@@ -16,8 +16,17 @@
     if(!email)throw Error('This user is not linked to a Supabase Auth account.');
     return finishLogin(email,pin,appId);
   }
+  function authPassword(pin){return 'KMT!' + String(pin) + '!2026';}
   async function finishLogin(email,pin,expectedId){
-    const d=await auth('token?grant_type=password',{email:String(email),password:String(pin)});
+    let d;
+    try{
+      // Existing production users use the legacy 4-digit password.
+      d=await auth('token?grant_type=password',{email:String(email),password:String(pin)});
+    }catch(firstError){
+      // New registered students use a Supabase-compliant password while the
+      // UI still lets them remember only their 4-digit PIN.
+      d=await auth('token?grant_type=password',{email:String(email),password:authPassword(pin)});
+    }
     S.access=d.access_token;S.refresh=d.refresh_token;S.user=d.user;save();
     const map=await api('/rest/v1/auth_users?select=app_user_id&auth_user_id=eq.'+encodeURIComponent(d.user.id));
     if(!map[0]||(expectedId&&map[0].app_user_id!==expectedId)){
@@ -34,7 +43,9 @@
     if(displayName.length<2)throw Error('Enter the student name.');
     if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw Error('Enter a valid email address.');
     if(!/^\d{4}$/.test(pin))throw Error('Student PIN must be 4 digits.');
-    const d=await auth('signup',{email,password:pin,data:{display_name:displayName,role:'student'}});
+    // Supabase requires a password of at least 6 characters. The student
+    // still chooses/uses a simple 4-digit PIN; the longer value is internal.
+    const d=await auth('signup',{email,password:authPassword(pin),data:{display_name:displayName,role:'student'}});
     if(!d?.user?.id)throw Error('Registration did not create the Auth account.');
     const authId=d.user.id;
     // Generate a stable application ID; the database RPC creates both the
