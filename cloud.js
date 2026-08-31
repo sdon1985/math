@@ -34,9 +34,77 @@
     }
     const p=await api('/rest/v1/kids_users?select=id,display_name,role&id=eq.'+encodeURIComponent(map[0].app_user_id));
     if(!p[0])throw Error('Kids Math Test user profile was not found.');
-    S.user={authId:d.user.id,id:p[0].id,name:p[0].display_name,role:p[0].role,email:String(email)};save();return S.user;
+    S.user={authId:d.user.id,id:p[0].id,name:p[0].display_name,role:p[0].role,email:String(email)};save();if(S.user.role==='user')await syncStudentPin(pin);return S.user;
   }
   async function loginWithEmail(email,pin){return finishLogin(email.trim().toLowerCase(),pin,null)}
+  async function syncStudentPin(pin){
+    if(!S.user?.id||S.user.role!=="user"||!/^\d{4}$/.test(String(pin)))return;
+    try{await rpc('set_student_pin_hash',{p_app_user_id:S.user.id,p_pin:String(pin)});}catch(e){console.warn('PIN sync:',e);}
+  }
+
+  function parentPassword(password){return String(password||'');}
+  async function parentLogin(email,password){
+    email=String(email||'').trim().toLowerCase(); password=parentPassword(password);
+    if(!email||password.length<6)throw Error('Enter parent email and password.');
+    const d=await auth('token?grant_type=password',{email,password});
+    S.access=d.access_token;S.refresh=d.refresh_token;S.user=d.user;save();
+    const p=await api('/rest/v1/parent_users?select=auth_user_id,display_name,email&auth_user_id=eq.'+encodeURIComponent(d.user.id));
+    if(!p[0]){await logout();throw Error('Parent profile was not found. Complete parent registration first.');}
+    S.user={authId:d.user.id,id:d.user.id,name:p[0].display_name,role:'parent',email:p[0].email||email};save();return S.user;
+  }
+
+  async function registerParent(displayName,email,password){
+    displayName=String(displayName||'').trim();email=String(email||'').trim().toLowerCase();password=String(password||'');
+    if(displayName.length<2)throw Error('Enter the parent name.');
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw Error('Enter a valid parent email address.');
+    if(password.length<6)throw Error('Parent password must be at least 6 characters.');
+    const pendingKey='kmtPendingParentRegistration';
+    const redirect=(C.baseUrl||location.origin+'/math/').replace(/\/?$/,'/')+'login.html';
+    localStorage.setItem(pendingKey,JSON.stringify({displayName,email,createdAt:Date.now()}));
+    let d;
+    try{d=await auth('signup?redirect_to='+encodeURIComponent(redirect),{email,password,data:{display_name:displayName,role:'parent'}})}
+    catch(e){const msg=String(e?.message||e);if(/already registered|already exists/i.test(msg))throw Error('This parent email is already registered. Use Parent Login.');throw e;}
+    if(!d?.user?.id)throw Error('Supabase did not create the parent Auth account. Check Auth email settings.');
+    if(d.access_token){
+      await rpc('register_parent',{p_auth_user_id:d.user.id,p_display_name:displayName,p_email:email});
+      const u={authId:d.user.id,id:d.user.id,name:displayName,role:'parent',email};S.access=d.access_token;S.refresh=d.refresh_token||null;S.user=u;save();localStorage.removeItem(pendingKey);return {user:u,confirmed:true};
+    }
+    return {id:d.user.id,name:displayName,role:'parent',email,confirmed:false};
+  }
+
+  async function finishParentEmailConfirmation(){
+    const hash=new URLSearchParams(location.hash.replace(/^#/,''));
+    const access=hash.get('access_token'),refreshToken=hash.get('refresh_token');
+    if(!access)return null;
+    S.access=access;S.refresh=refreshToken;save();
+    const me=await authUser();
+    if(!me?.id)throw Error('Email confirmation returned no Auth user.');
+    const pending=JSON.parse(localStorage.getItem('kmtPendingParentRegistration')||'null');
+    const name=pending?.displayName||me.user_metadata?.display_name||'Parent';
+    await rpc('register_parent',{p_auth_user_id:me.id,p_display_name:name,p_email:me.email||pending?.email});
+    S.user={authId:me.id,id:me.id,name,role:'parent',email:me.email||pending?.email};save();
+    localStorage.removeItem('kmtPendingParentRegistration');
+    history.replaceState({},document.title,location.pathname+location.search);
+    return S.user;
+  }
+
+  async function enrollStudent(studentId,email,pin){
+    if(S.user?.role!=="parent")throw Error('Parent login required.');
+    studentId=String(studentId||'').trim();email=String(email||'').trim().toLowerCase();pin=String(pin||'');
+    if(!studentId||!email||!/^\d{4}$/.test(pin))throw Error('Enter student User ID, email ID and 4-digit PIN.');
+    return rpc('parent_enroll_student',{p_student_id:studentId,p_student_email:email,p_pin:pin});
+  }
+
+  async function parentStudents(){
+    if(S.user?.role!=="parent")throw Error('Parent login required.');
+    return api('/rest/v1/parent_student_links?select=student_id,enrolled_at,kids_users!inner(id,display_name)&parent_auth_user_id=eq.'+encodeURIComponent(S.user.authId)+'&order=enrolled_at.desc');
+  }
+
+  async function parentProgress(studentId){
+    if(S.user?.role!=="parent")throw Error('Parent login required.');
+    return api('/rest/v1/progress?select=*&user_id=eq.'+encodeURIComponent(studentId)+'&order=date.desc');
+  }
+
   function stableStudentId(email){
     // Stable application ID derived from email. This allows a deleted student
     // to re-register with the same email and recover the same app user ID.
@@ -117,7 +185,7 @@
 
     const appId=stableStudentId(email);
     try{
-      await rpc('register_student',{p_auth_user_id:authId,p_app_user_id:appId,p_display_name:displayName});
+      await rpc('register_student',{p_auth_user_id:authId,p_app_user_id:appId,p_display_name:displayName,p_pin:pin});
     }catch(e){
       throw Error('Auth account was created, but the student profile could not be created. Check the register_student database function. '+String(e?.message||e));
     }
@@ -286,5 +354,5 @@
 
   async function worksheets(uid){return api('/rest/v1/worksheets?select=*&user_id=eq.'+encodeURIComponent(uid)+'&order=submitted_at.desc')}
   async function allWorksheets(){return api('/rest/v1/worksheets?select=*&order=submitted_at.desc')}
-  window.KMT={finishEmailConfirmation,load,login,loginWithEmail,registerStudent,deleteStudentAccount,logout,me,submit,pending,reviewed,progress,progressFromRows,worksheets,allWorksheets,voidWorksheet,api};
+  window.KMT={finishEmailConfirmation,finishParentEmailConfirmation,load,login,loginWithEmail,registerStudent,registerParent,parentLogin,enrollStudent,parentStudents,parentProgress,deleteStudentAccount,logout,me,submit,pending,reviewed,progress,progressFromRows,worksheets,allWorksheets,voidWorksheet,api};
 })();

@@ -50,6 +50,8 @@ body{margin:0;min-height:100vh;display:grid;place-items:center;padding:20px;back
     </div>
     <button id="go" class="go">Continue →</button>
     <button id="studentLoginLink" class="secondary" type="button">🔐 Login with Student Email</button>
+    <button id="parentLoginLink" class="secondary" type="button">👨‍👩‍👧 Parent Login</button>
+    <button id="parentRegisterLink" class="secondary" type="button">👨‍👩‍👧 Register Parent Account</button>
     <button id="newUser" class="secondary" type="button">➕ Register New Student</button>
   </section>
 
@@ -64,7 +66,25 @@ body{margin:0;min-height:100vh;display:grid;place-items:center;padding:20px;back
     <button id="emailGo" class="go" type="button">Student Login →</button>
   </section>
 
-  <section id="registerBox" class="hidden">
+  <section id="parentLoginBox" class="hidden">
+    <div class="form">
+      <input id="parentLoginEmail" type="email" autocomplete="email" placeholder="Parent email">
+      <input id="parentLoginPassword" type="password" autocomplete="current-password" placeholder="Parent password">
+    </div>
+    <button id="parentLoginBtn" class="go" type="button">Parent Login →</button>
+  </section>
+
+  <section id="parentRegisterBox" class="hidden">
+    <div class="form">
+      <input id="parentName" type="text" autocomplete="name" placeholder="Parent full name">
+      <input id="parentEmail" type="email" autocomplete="email" placeholder="Parent email">
+      <input id="parentPassword" type="password" autocomplete="new-password" placeholder="Create password (6+ characters)">
+    </div>
+    <div class="note">Parent accounts can enroll students only after entering the student's User ID, email ID and 4-digit PIN.</div>
+    <button id="parentRegisterBtn" class="go" type="button">Create Parent Account</button>
+  </section>
+
+<section id="registerBox" class="hidden">
     <div class="form">
       <input id="regName" type="text" autocomplete="name" placeholder="Student full name">
       <input id="regEmail" type="email" autocomplete="email" placeholder="Student email">
@@ -79,20 +99,21 @@ body{margin:0;min-height:100vh;display:grid;place-items:center;padding:20px;back
 
   <div id="error" class="error"></div>
   <button id="backLogin" class="back hidden" type="button">← Back to Login</button>
-  <div class="footer">Production 3.0.7 • Supabase Auth</div>
+  <div class="footer">Production 3.0.8 • Supabase Auth</div>
 </main>
 
 <script>
 (async function(){
   try{
     if(location.hash.includes("access_token=")){
-      const u=await KMT.finishEmailConfirmation();
+      const isParent=localStorage.getItem("kmtPendingParentRegistration");
+      const u=isParent?await KMT.finishParentEmailConfirmation():await KMT.finishEmailConfirmation();
       if(u){
         sessionStorage.setItem("poorviCurrentUser",u.id);
         sessionStorage.setItem("poorviDisplayName",u.name);
         sessionStorage.setItem("poorviRole",u.role);
         sessionStorage.setItem("poorviAuthMode","supabase");
-        location.replace("index.html");
+        location.replace(u.role==="parent"?"parent.html":"index.html");
         return;
       }
     }
@@ -109,6 +130,10 @@ body{margin:0;min-height:100vh;display:grid;place-items:center;padding:20px;back
   const newUser=document.getElementById("newUser");
   const back=document.getElementById("backLogin");
   const studentLoginLink=document.getElementById("studentLoginLink");
+  const parentLoginLink=document.getElementById("parentLoginLink");
+  const parentRegisterLink=document.getElementById("parentRegisterLink");
+  const parentLoginBox=document.getElementById("parentLoginBox");
+  const parentRegisterBox=document.getElementById("parentRegisterBox");
 
   function choose(id){
     selected=id; err.textContent=""; pin.value="";
@@ -125,7 +150,7 @@ body{margin:0;min-height:100vh;display:grid;place-items:center;padding:20px;back
   function showStudentLogin(){
     err.textContent="";
     quick.classList.add("hidden");
-    regBox.classList.add("hidden");
+    regBox.classList.add("hidden"); parentLoginBox.classList.add("hidden"); parentRegisterBox.classList.add("hidden");
     studentLogin.classList.remove("hidden");
     back.classList.remove("hidden");
     document.getElementById("loginEmail").focus();
@@ -134,7 +159,7 @@ body{margin:0;min-height:100vh;display:grid;place-items:center;padding:20px;back
   function showRegister(){
     err.textContent="";
     quick.classList.add("hidden");
-    studentLogin.classList.add("hidden");
+    studentLogin.classList.add("hidden"); parentLoginBox.classList.add("hidden"); parentRegisterBox.classList.add("hidden");
     regBox.classList.remove("hidden");
     back.classList.remove("hidden");
     document.getElementById("regName").focus();
@@ -143,6 +168,40 @@ body{margin:0;min-height:100vh;display:grid;place-items:center;padding:20px;back
   studentLoginLink.onclick=showStudentLogin;
   newUser.onclick=showRegister;
   back.onclick=()=>location.reload();
+
+  function showParentLogin(){
+    err.textContent=""; quick.classList.add("hidden"); studentLogin.classList.add("hidden"); regBox.classList.add("hidden"); parentRegisterBox.classList.add("hidden"); parentLoginBox.classList.remove("hidden"); back.classList.remove("hidden"); document.getElementById("parentLoginEmail").focus();
+  }
+  function showParentRegister(){
+    err.textContent=""; quick.classList.add("hidden"); studentLogin.classList.add("hidden"); regBox.classList.add("hidden"); parentLoginBox.classList.add("hidden"); parentRegisterBox.classList.remove("hidden"); back.classList.remove("hidden"); document.getElementById("parentName").focus();
+  }
+  parentLoginLink.onclick=showParentLogin;
+  parentRegisterLink.onclick=showParentRegister;
+
+  document.getElementById("parentLoginBtn").onclick=async()=>{
+    const email=document.getElementById("parentLoginEmail").value.trim();
+    const password=document.getElementById("parentLoginPassword").value;
+    if(!email||password.length<6){err.textContent="Enter parent email and password.";return;}
+    const b=document.getElementById("parentLoginBtn");b.disabled=true;b.textContent="Signing in…";err.textContent="";
+    try{
+      const u=await KMT.parentLogin(email,password);
+      sessionStorage.setItem("poorviCurrentUser",u.id);sessionStorage.setItem("poorviDisplayName",u.name);sessionStorage.setItem("poorviRole","parent");sessionStorage.setItem("poorviAuthMode","supabase");
+      location.replace("parent.html");
+    }catch(e){console.error(e);err.textContent=e.message||"Parent login failed.";}
+    finally{b.disabled=false;b.textContent="Parent Login →";}
+  };
+
+  document.getElementById("parentRegisterBtn").onclick=async()=>{
+    const name=document.getElementById("parentName").value.trim(),email=document.getElementById("parentEmail").value.trim(),password=document.getElementById("parentPassword").value;
+    if(name.length<2||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||password.length<6){err.textContent="Enter parent name, valid email and a password of at least 6 characters.";return;}
+    const b=document.getElementById("parentRegisterBtn");b.disabled=true;b.textContent="Creating account…";err.textContent="";
+    try{
+      const r=await KMT.registerParent(name,email,password);
+      if(r.confirmed===false){err.style.color="#067647";err.textContent="Parent account created. Check your email, confirm it, then return to Login.";b.textContent="Account Created ✓";return;}
+      const u=r.user;sessionStorage.setItem("poorviCurrentUser",u.id);sessionStorage.setItem("poorviDisplayName",u.name);sessionStorage.setItem("poorviRole","parent");sessionStorage.setItem("poorviAuthMode","supabase");location.replace("parent.html");
+    }catch(e){console.error(e);err.textContent=e.message||"Parent registration failed.";}
+    finally{b.disabled=false;b.textContent="Create Parent Account";}
+  };
 
   async function quickLogin(){
     if(!/^\d{4}$/.test(pin.value)){

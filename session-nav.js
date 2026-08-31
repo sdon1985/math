@@ -110,29 +110,6 @@ if(x){x.disabled=false;x.classList.remove("hidden");}
 });
 }
 
-function bindAuthoritativeUserSwitch(){}
-
-// This happens BEFORE currentUser changes.
-hardEndCurrentUserTest();
-
-currentUser=target;
-sessionStorage.setItem("poorviCurrentUser",target.id);
-
-if(typeof applyRole==="function")applyRole();
-const name=document.getElementById("welcomeTitle");
-if(name)name.textContent=target.name;
-this.value=target.id;
-
-// Force all test-related state/UI to start fresh for the new user.
-hardEndCurrentUserTest();
-
-if(typeof renderWeek==="function")renderWeek();
-if(typeof renderMonthly==="function")renderMonthly();
-if(typeof renderYearly==="function")renderYearly();
-
-alert("Switched to "+target.name+". The previous test session was ended.");
-});
-}
 function setupUserNav(){
 el("navPractice").onclick=()=>showPractice();
 el("navResults").onclick=()=>showResults();
@@ -178,22 +155,3 @@ if(!document.hidden)refreshProgressAfterAdminSave();
 });
 
 
-<script id="baselineWelcomeIdentity">
-(function(){
-  function update(){
-    const id=sessionStorage.getItem("poorviCurrentUser")||localStorage.getItem("poorviLoggedInUser");
-    if(!id)return;
-    const names={guest:"Guest",poorvi:"Poorvi Dondeti",mahiram:"Mahiram Dondeti"};
-    let name=names[id]||id;
-    try{
-      const users=JSON.parse(localStorage.getItem("poorviMathUsers")||"[]");
-      const u=Array.isArray(users)?users.find(x=>x&&x.id===id):null;
-      if(u&&u.name)name=u.name;
-    }catch(e){}
-    const el=document.getElementById("welcomeTitle");
-    if(el)el.textContent="Welcome to "+name;
-  }
-  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",update);
-  else update();
-  window.addEventListener("load",update);
-})();
