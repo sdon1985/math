@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kids Math Test — Parent Portal</title>
+<script src="app-config.js"></script><script src="cloud.js?v=3.3.3"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f4f7fb;color:#10233f;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+.wrap{max-width:1100px;margin:30px auto;padding:0 18px}.card{background:#fff;border:1px solid #dbe4ef;border-radius:20px;padding:24px;margin:18px 0;box-shadow:0 5px 20px rgba(15,35,64,.05)}
+h1,h2{margin:0 0 8px}.muted{color:#60748f}.top{display:flex;justify-content:space-between;gap:12px;align-items:center}.btn{border:1px solid #d2ddeb;background:#fff;border-radius:12px;padding:11px 16px;font-weight:800;cursor:pointer}.primary{background:#2867e8;color:#fff;border-color:#2867e8}.danger{background:#fff3f3;color:#a11;border-color:#f0b6b6}
+.form{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;margin-top:16px}.form input{width:100%;padding:13px 14px;border:1px solid #ccd7e6;border-radius:12px;font-size:16px}.student{border:1px solid #dbe4ef;border-radius:16px;padding:18px;margin-top:14px}.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:14px}.stat{background:#f6f8fb;border-radius:12px;padding:14px;text-align:center}.stat b{display:block;font-size:22px}.empty{padding:20px;border:1px dashed #cbd6e4;border-radius:14px;color:#60748f;margin-top:12px}.error{color:#a11;margin-top:12px;font-weight:700}.success{color:#067647;margin-top:12px;font-weight:700}
+@media(max-width:750px){.topLine{align-items:flex-start;flex-direction:column}.form{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.top{align-items:flex-start;flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<section class="card">
+ <div class="top"><div><h1>👨‍👩‍👧 Parent Portal</h1><div id="welcome" class="muted">Secure parent account</div></div><div class="actions"><button id="refresh" class="btn">↻ Refresh</button><button id="logout" class="btn">Log out</button></div></div>
+</section>
+
+<section class="card">
+ <h2>➕ Enroll a Student</h2>
+ <div class="muted">Enter all three student credentials. No student information is displayed or revealed until the credentials are verified.</div>
+ <div class="form">
+  <input id="studentId" placeholder="Student User ID" autocomplete="off">
+  <input id="studentEmail" type="email" placeholder="Student email ID" autocomplete="off">
+  <input id="studentPin" type="password" inputmode="numeric" maxlength="4" placeholder="4-digit student PIN" autocomplete="off">
+  <button id="enroll" class="btn primary">Verify & Enroll</button>
+ </div>
+ <div id="enrollMsg"></div>
+</section>
+
+<section class="card">
+ <h2>👧 My Enrolled Students</h2>
+ <div class="muted">Only students successfully enrolled by this parent are shown here.</div>
+ <div id="students"><div class="empty">Loading your enrolled students…</div></div>
+</section>
+
+<div class="footer muted" style="text-align:center;padding:20px">Production 3.3.3 • Supabase Cloud • Parent Portal</div>
+</div>
+<script>
+(async function(){
+const $=id=>document.getElementById(id);
+function esc(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+function guard(){
+ if(sessionStorage.getItem("poorviAuthMode")!=="supabase"||sessionStorage.getItem("poorviRole")!=="parent"){location.replace("login.html");return false}
+ return true;
+}
+async function load(){
+ try{
+  $("students").innerHTML='<div class="empty">Refreshing parent data…</div>';
+  const rows=await KMT.parentStudents();
+  if(!rows.length){$("students").innerHTML='<div class="empty">No students enrolled yet. Enter the student User ID, email ID and PIN above to add one.</div>';return;}
+  $("students").innerHTML=rows.map(x=>{
+    const name=x.display_name||x.student_id;
+    return '<div class="student" data-student="'+esc(x.student_id)+'"><div class="topLine"><h2 style="margin:0">👤 '+esc(name)+'</h2><span class="muted">User ID: '+esc(x.student_id)+'</span></div><div class="muted">Enrolled '+new Date(x.enrolled_at).toLocaleString()+'</div><div class="progressBox"><div class="muted">Loading progress…</div></div><div class="worksheetBox" style="margin-top:14px"><div class="muted">Loading worksheets…</div></div></div>';
+  }).join('');
+
+  for(const el of document.querySelectorAll(".student")){
+    const id=el.dataset.student;
+    const [pr,wr]=await Promise.allSettled([KMT.parentProgress(id),KMT.parentWorksheets(id)]);
+    if(pr.status==="fulfilled"){
+      const rs=pr.value||[], total=rs.reduce((n,r)=>n+Number(r.total||0),0), correct=rs.reduce((n,r)=>n+Number(r.correct||0),0), wrong=rs.reduce((n,r)=>n+Number(r.wrong||0),0), na=rs.reduce((n,r)=>n+Number(r.not_answered||0),0), acc=total?Math.round(correct*100/total):0;
+      el.querySelector(".progressBox").innerHTML='<div class="stats"><div class="stat"><b>'+rs.length+'</b>Approved Worksheets</div><div class="stat"><b>'+acc+'%</b>Accuracy</div><div class="stat"><b>'+correct+'</b>Correct</div><div class="stat"><b>'+wrong+'</b>Wrong</div><div class="stat"><b>'+na+'</b>Not Answered</div></div>';
+    }else el.querySelector(".progressBox").innerHTML='<div class="error">Unable to load approved progress.</div>';
+
+    if(wr.status==="fulfilled"){
+      const ws=wr.value||[];
+      if(!ws.length){el.querySelector(".worksheetBox").innerHTML='<div class="empty">No worksheet submissions yet.</div>';}
+      else{
+        el.querySelector(".worksheetBox").innerHTML='<h3 style="margin:10px 0">📝 Recent Worksheets</h3>'+ws.slice(0,10).map(w=>{
+          const st=String(w.status||'pending').toLowerCase();
+          const label=['approved','reviewed','complete'].includes(st)?'✓ Approved':st==='under_review'?'⏳ Under Review':'⏳ Submitted';
+          const sub=(w.submission&&typeof w.submission==='object')?w.submission:{};
+          const answers=Array.isArray(sub.answers)?sub.answers:[];
+          const correct=answers.filter(a=>a.status==='correct').length;
+          const total=Number(w.total||answers.length||0);
+          const score=['approved','reviewed','complete'].includes(st)?correct+'/'+total:'Waiting for review';
+          return '<div class="row" style="border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:8px"><div><b>'+esc(w.operation||'Worksheet')+'</b><div class="muted">'+new Date(w.submitted_at).toLocaleString()+' • '+esc(label)+'</div></div><div><b>'+esc(score)+'</b></div></div>';
+        }).join('');
+      }
+    }else el.querySelector(".worksheetBox").innerHTML='<div class="error">Unable to load worksheet submissions.</div>';
+  }
+ }catch(e){console.error(e);$("students").innerHTML='<div class="error">Unable to load parent data. Please refresh or log in again.</div>';}
+}
+$("welcome").textContent="Welcome, "+(sessionStorage.getItem("poorviDisplayName")||"Parent");
+$("refresh").onclick=async()=>{const b=$("refresh");b.disabled=true;b.textContent="Refreshing…";try{await load()}finally{b.disabled=false;b.textContent="↻ Refresh"}};
+$("logout").onclick=async()=>{try{await KMT.logout()}finally{sessionStorage.clear();location.replace("login.html")}};
+$("enroll").onclick=async()=>{
+ const id=$("studentId").value.trim(),email=$("studentEmail").value.trim(),pin=$("studentPin").value;
+ const b=$("enroll");$("enrollMsg").className="";$("enrollMsg").textContent="";
+ if(!id||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||!/^\d{4}$/.test(pin)){$("enrollMsg").className="error";$("enrollMsg").textContent="Enter Student User ID, valid email ID and 4-digit PIN.";return;}
+ b.disabled=true;b.textContent="Verifying…";
+ try{const result=await KMT.enrollStudent(id,email,pin);$("enrollMsg").className="success";$("enrollMsg").textContent=result?.already_enrolled?"Student is already linked to your parent portal.":"Student verified and linked to your parent portal.";$("studentId").value="";$("studentEmail").value="";$("studentPin").value="";await load();}
+ catch(e){console.error(e);$("enrollMsg").className="error";$("enrollMsg").textContent=e.message||"Student credentials could not be verified."}
+ finally{b.disabled=false;b.textContent="Verify & Enroll";}
+};
+if(guard())load();
+})();
+</script>
+</body></html>

@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Kids Math Test">
+<title>Kids Math Test</title>
+<style>
+:root{
+ --bg:#f4f7fb;--card:#fff;--ink:#142033;--muted:#667085;--line:#dfe5ee;
+ --brand:#2563eb;--brand2:#1d4ed8;--soft:#eef4ff;--good:#e9f8ef;--danger:#fff0f0;
+ --shadow:0 10px 35px rgba(16,24,40,.07);--radius:20px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}
+button,select,input{font:inherit}
+button{cursor:pointer}
+a{text-decoration:none}
+.page{max-width:1180px;margin:auto;padding:16px}
+.topbar{background:var(--card);border:1px solid var(--line);border-radius:24px;padding:18px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;box-shadow:var(--shadow);margin-bottom:12px}
+.eyebrow{font-size:12px;font-weight:900;letter-spacing:.12em;color:#64748b}
+#welcomeTitle{font-size:30px;font-weight:900;letter-spacing:-.02em;margin-top:3px}
+.top-actions,.tabs,.actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:13px;padding:11px 15px;font-weight:800;min-height:44px}
+.btn:hover{transform:translateY(-1px)}
+.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+.primary:hover{background:var(--brand2)}
+.secondary{background:#fff;border:1px solid var(--line);color:var(--ink)}
+.danger{background:var(--danger);border:1px solid #ffd0d0;color:#a32929}
+.app{max-width:1180px;margin:auto}
+.navtabs{display:flex;gap:8px;margin:0 0 12px;overflow:auto}
+.navtabs button{white-space:nowrap}
+.navtabs .active{background:var(--ink);color:#fff;border-color:var(--ink)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin:12px 0;box-shadow:var(--shadow)}
+.section-title{font-size:20px;font-weight:900}
+.muted{color:var(--muted)}
+.controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:15px}
+label{display:block;font-size:13px;font-weight:800;margin-bottom:6px}
+select,input{width:100%;padding:12px;border:1px solid #cdd6e2;border-radius:12px;background:#fff;color:var(--ink)}
+.table-picker{border:1px solid var(--line);border-radius:16px;padding:12px;background:#f9fbff}
+.mdRangeHeader{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:8px}
+.mdRangeActions{display:flex;gap:6px}.miniBtn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 10px;font-weight:800}
+.tableChecks{display:grid;grid-template-columns:repeat(7,1fr);gap:7px}
+.tableChecks label{margin:0}
+.tableChecks label span{display:flex;align-items:center;justify-content:center;height:42px;border:1px solid var(--line);border-radius:10px;background:#fff;cursor:pointer}
+.tableChecks input{position:absolute;opacity:0;width:1px;height:1px}
+.tableChecks input:checked+span{background:var(--brand);border-color:var(--brand);color:#fff}
+.lock{background:var(--good);border-radius:14px;padding:12px;text-align:center;font-weight:900}
+.timer{font-size:32px;font-weight:950}
+.sheet{border:1px solid #b8c1cc;border-radius:12px;background:#fff;overflow:hidden}
+.head{padding:15px;border-bottom:1px solid #9da7b2}
+.title{text-align:center;font:bold 25px Georgia,serif}
+.info{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;font:15px Georgia,serif;margin-top:10px}
+.line{display:inline-block;width:115px;border-bottom:1px solid #333}
+.grid{display:grid;grid-template-columns:repeat(var(--cols,4),minmax(0,1fr));width:100%}
+.cell{min-height:102px;border-right:1px solid #c3c9d1;border-bottom:1px solid #c3c9d1;display:flex;align-items:center;justify-content:center;text-align:center;padding:7px}
+.q{font:clamp(14px,1.9vw,24px) Georgia,serif;white-space:nowrap}
+.pad{width:clamp(62px,8vw,88px);height:54px;border:1px solid #aeb8c4;border-radius:8px;background:#fff;display:block;touch-action:none}
+.ans{width:60px;border:0;border-bottom:2px solid #444;border-radius:0;outline:0;text-align:center;background:transparent;font-size:24px}
+.fb{height:18px;font-size:12px;min-width:42px}.ok{color:#16803c}.bad{color:#c62828}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.stat{background:#f7f9fc;border-radius:14px;padding:12px;text-align:center}.stat b{display:block;font-size:23px}
+.progressWeek,.week{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}.day{padding:10px;border:1px solid var(--line);border-radius:12px;background:#fff;text-align:center}.done{background:var(--good)}.day b,.day strong{display:block}.day strong{font-size:20px}
+.overlay{position:fixed;inset:0;background:rgba(15,23,42,.5);display:flex;align-items:center;justify-content:center;padding:18px;z-index:100}.modal{background:#fff;border-radius:20px;padding:22px;width:min(420px,100%);box-shadow:0 25px 70px rgba(0,0,0,.25)}
+.footer{text-align:center;color:#7a8595;font-size:12px;padding:20px}
+
+.cloudStatusGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.cloudStatusCard{border:1px solid var(--line);border-radius:12px;padding:12px;background:#f8fafc;display:flex;justify-content:space-between;align-items:center}.cloudStatusCard span{font-size:22px;font-weight:950}.cloudWorksheetList{margin-top:10px}.cloudWorksheetRow{border:1px solid var(--line);border-radius:12px;padding:11px;margin-top:8px;background:#fff}.cloudWorksheetHead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.cloudPill{padding:5px 8px;border-radius:999px;font-size:12px;font-weight:800}.pendingPill{background:#fff3cd;color:#7a5200}.cloudMistakes{margin-top:10px;border-top:1px solid var(--line);padding-top:9px}.cloudMistakeTitle{font-weight:900;margin:8px 0 5px}.mistakeRow{display:grid;grid-template-columns:42px minmax(150px,1fr) auto;gap:8px;align-items:center;padding:7px 0;border-top:1px solid #edf0f4}.badText{color:#b42318}.cloudGood{padding:10px;border-radius:10px;background:#ecfdf3;color:#166534;font-weight:800}
+.hidden{display:none!important}
+@media(max-width:760px){.controls{grid-template-columns:1fr 1fr}.tableChecks{grid-template-columns:repeat(5,1fr)}.stats{grid-template-columns:repeat(2,1fr)}.topbar{align-items:flex-start;flex-direction:column}#welcomeTitle{font-size:26px}}
+@media(max-width:520px){.page{padding:10px}.controls{grid-template-columns:1fr}.tableChecks{grid-template-columns:repeat(4,1fr)}.info{grid-template-columns:1fr}.cell{min-height:92px}.q{font-size:15px}.pad{width:68px;height:48px}}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="./app-config.js"></script><script src="./cloud.js?v=3.3.3"></script>
+</head><body>
+<div class="page">
+<header class="topbar">
+  <div><div class="eyebrow">KIDS MATH TEST • PRODUCTION 3.3.3</div><div id="welcomeTitle">Welcome</div><div class="muted">Your private learning dashboard</div></div>
+  <div class="top-actions">
+    <button class="btn secondary" id="switchUserBtn">⇄ Switch User</button>
+    <a class="btn secondary" href="admin.html">👑 Admin</a>
+  </div>
+</header>
+
+<nav id="userNav" class="navtabs">
+ <button class="btn active" id="navPractice">📝 Practice</button>
+ <button class="btn secondary" id="navResults">📊 Results</button>
+ <button class="btn secondary" id="navProgress">📈 Progress</button>
+</nav>
+
+<main id="app">
+<section class="card" id="parentPanel">
+ <div class="section-title">Create a Worksheet</div>
+ <div class="muted">Set the test before giving the device to your child.</div>
+ <div class="controls">
+  <div><label>Operation</label><select id="op"><option value="addition">Addition</option><option value="subtraction">Subtraction</option><option value="multiplication">Multiplication</option><option value="division">Division</option><option value="mixed">Mixed</option></select></div>
+  <div><label>Questions</label><select id="count"><option value="100" selected>100</option><option value="50">50</option></select></div>
+  <div><label>Answer Method</label><select id="answerMode"><option value="pencil">✏️ Apple Pencil</option><option value="keyboard">⌨️ Keyboard</option></select></div>
+  <div><label>Timer</label><select id="mins"><option value="4" selected>4 minutes</option><option value="5">5 minutes</option></select></div>
+  <div><label>Edition</label><select id="edition"><option value="random">Random</option><option value="regroup">More regrouping</option></select></div>
+  <div id="addSubRangeWrap"><label>Add/Sub Range</label><select id="addSubRange"><option value="single">Single digit (0–9)</option><option value="two">Two digit (0–20)</option><option value="mixed">Mixed 0–20</option></select></div>
+  <div id="mdRangeWrap" class="hidden" style="grid-column:1/-1">
+   <label>Tables to Practice</label>
+   <div class="table-picker">
+    <div class="mdRangeHeader"><span class="muted" id="mdRangeHint">Choose one or more tables</span><div class="mdRangeActions"><button class="miniBtn" id="mdSelectAll" type="button">Select All</button><button class="miniBtn" id="mdClearAll" type="button">Clear</button></div></div>
+    <div id="mdRangeChecks" class="tableChecks">
+     <label><input class="mdTable" type="checkbox" value="0"><span>0</span></label><label><input class="mdTable" type="checkbox" value="1"><span>1</span></label><label><input class="mdTable" type="checkbox" value="2"><span>2</span></label><label><input class="mdTable" type="checkbox" value="3"><span>3</span></label><label><input class="mdTable" type="checkbox" value="4"><span>4</span></label><label><input class="mdTable" type="checkbox" value="5"><span>5</span></label><label><input class="mdTable" type="checkbox" value="6"><span>6</span></label><label><input class="mdTable" type="checkbox" value="7"><span>7</span></label><label><input class="mdTable" type="checkbox" value="8"><span>8</span></label><label><input class="mdTable" type="checkbox" value="9"><span>9</span></label><label><input class="mdTable" type="checkbox" value="10"><span>10</span></label><label><input class="mdTable" type="checkbox" value="11"><span>11</span></label><label><input class="mdTable" type="checkbox" value="12"><span>12</span></label>
+    </div>
+   </div>
+  </div>
+ </div>
+ <div class="actions" style="margin-top:14px"><button class="btn primary" id="newBtn">✨ Create Edition</button><button class="btn danger" id="clearBtn">Clear History</button></div>
+</section>
+
+<section class="card">
+ <div class="lock">🔒 TEST MODE — Parent controls lock automatically when the test starts.</div>
+ <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px"><b>Timer</b><span id="timer" class="timer">4:00</span></div>
+ <div class="actions" style="margin-top:10px"><button class="btn primary" id="startBtn">▶ Start Test</button><button class="btn secondary hidden" id="submitBtn">✓ Submit Test</button></div>
+ <div id="pencilTools" class="hidden" style="margin-top:12px"><button class="btn primary" id="writeBtn">🖊️ Write</button><button class="btn secondary" id="eraseBtn">🧽 Erase</button><span class="muted" id="modeText">Write mode — Apple Pencil</span></div>
+</section>
+
+<section class="card"><div id="sheet" class="sheet"></div></section>
+<section class="card hidden" id="ocrStatus"><b>✏️ Checking handwriting…</b><div id="ocrProgress" class="muted">Preparing score.</div></section>
+
+<section class="card hidden" id="result">
+ <div class="section-title">Latest Result</div><div id="msg" class="muted" style="margin-top:4px"></div>
+ <div class="stats"><div class="stat"><b id="score">—</b>Score</div><div class="stat"><b id="acc">—</b>Accuracy</div><div class="stat"><b id="used">—</b>Time</div><div class="stat"><b id="best">—</b>Best</div></div>
+</section>
+
+<section class="card" id="worksheetStatusCard">
+ <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><div><div class="section-title">My Submitted Worksheets</div><div class="muted">Track tests waiting for parent review and see reviewed mistakes.</div></div><button class="btn secondary" id="refreshWorksheetStatus">↻ Refresh</button></div>
+ <div id="worksheetStatus" style="margin-top:12px"></div>
+</section>
+
+<section class="card" id="progressTracker">
+ <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><div><div class="section-title">Progress</div><div class="muted">Your cloud-saved learning history.</div></div><div class="actions"><button class="btn primary" id="weekTab">Weekly</button><button class="btn secondary" id="monthTab">Monthly</button><button class="btn secondary" id="yearTab">Yearly</button></div></div>
+ <div id="weeklyTracker" style="margin-top:14px"><div id="week" class="progressWeek"></div><div id="summary" class="muted" style="margin-top:9px"></div><div id="dayDetails" class="hidden" style="margin-top:10px"></div></div>
+ <div id="monthlyTracker" class="hidden" style="margin-top:12px"><div id="monthSummary"></div><div id="monthDetails"></div></div>
+ <div id="yearlyTracker" class="hidden" style="margin-top:12px"><div id="yearSummary"></div><div id="yearDetails"></div></div>
+</section>
+
+<!-- Legacy/admin workflow containers remain in the DOM for the proven engine,
+     but are hidden from normal user navigation. -->
+<section class="hidden" id="adminSubmissionQueue"><div id="adminQueue"></div><button id="adminRefreshBtn"></button></section>
+<section class="hidden" id="adminReviewCenter"><div id="adminReviewList"></div><button id="refreshAdminReviewsBtn"></button></section>
+<section class="hidden" id="adminUserOverview"><select id="adminUserSelect"></select><div id="adminUserSummary"></div><div id="adminUserWorksheets"></div></section>
+<div class="hidden" id="historyManager"><div id="userList"></div><button id="addUserBtn"></button><button id="closeUsersBtn"></button></div>
+<section class="hidden" id="parentReview"><div id="reviewSummary"></div><div id="reviewList"></div><button id="saveReviewBtn"></button><button id="voidReviewBtn"></button><button id="closeReviewBtn"></button></section>
+<button class="hidden" id="resultsBtn"></button><button class="hidden" id="parentBtn"></button><button class="hidden" id="adminReviewBtn"></button><button class="hidden" id="adminUsersBtn"></button><button class="hidden" id="adminSubmittedBtn"></button><button class="hidden" id="manageHistoryBtn"></button>
+</main>
+</div>
+<div id="modal" class="overlay hidden"><div class="modal"><h2>🔒 Parent Access</h2><div class="muted">Enter parent PIN.</div><input id="pin" type="password" inputmode="numeric"><div class="actions" style="margin-top:10px"><button class="btn primary" id="unlock">Unlock</button><button class="btn secondary" id="cancel">Cancel</button></div></div></div>
+<div class="footer">Production 3.3.3 • Supabase Cloud • Cross-device</div>
+
+<script src="./app-core.js"></script><script src="./session-nav.js"></script><script src="./cloud-bootstrap.js"></script>
+
+</body></html>

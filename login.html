@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Kids Math Test — Login</title>
+<script src="./app-config.js"></script>
+<script src="./cloud.js?v=3.3.3"></script>
+<style>
+:root{--ink:#142033;--muted:#667085;--line:#dfe5ee;--brand:#2563eb;--bg:#f3f7fc}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:grid;place-items:center;padding:20px;background:radial-gradient(circle at top,#eaf1ff,#f7f9fc 55%,#eef8f5);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial;color:var(--ink)}
+.card{width:min(500px,100%);background:#fff;border:1px solid var(--line);border-radius:28px;padding:28px;box-shadow:0 25px 80px rgba(16,24,40,.12)}
+.brand{text-align:center}.logo{font-size:50px}.brand h1{font-size:30px;margin:4px 0}.muted{color:var(--muted)}
+.users{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:24px 0 14px}
+.user{border:1px solid #cfd7e3;background:#fff;border-radius:18px;padding:15px;font-size:17px;font-weight:850;cursor:pointer}
+.user span{display:block;font-size:28px;margin-bottom:5px}
+.user.selected{border:2px solid var(--brand);background:#eef4ff;box-shadow:0 5px 18px #2563eb20}
+.pin{display:flex;gap:8px}.pin input{flex:1;border:1px solid #cfd7e3;border-radius:15px;padding:15px;text-align:center;font-size:28px;letter-spacing:10px}.eye{width:54px;border:1px solid #cfd7e3;background:#fff;border-radius:15px;font-size:20px}
+.go,.secondary{width:100%;margin-top:12px;border:0;border-radius:15px;padding:15px;font-size:18px;font-weight:900;cursor:pointer}
+.go{background:var(--brand);color:#fff}.secondary{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.go:disabled,.secondary:disabled{opacity:.55}
+.error{min-height:24px;color:#b42318;text-align:center;margin:10px 0}
+.footer{text-align:center;font-size:11px;color:#7b8797;margin-top:18px}
+.form{display:grid;gap:10px}.form input{width:100%;border:1px solid #cfd7e3;border-radius:15px;padding:14px;font-size:17px}
+.hidden{display:none!important}
+.back{margin-top:10px;background:transparent;border:0;color:var(--brand);font-weight:800;cursor:pointer;width:100%;padding:8px}
+.note{font-size:13px;text-align:center;color:var(--muted);margin-top:8px}
+@media(max-width:420px){.card{padding:22px}.users{gap:8px}.user{padding:12px}}
+</style>
+</head>
+<body>
+<main class="card">
+  <div class="brand">
+    <div class="logo">📚</div>
+    <h1>Kids Math Test</h1>
+    <div class="muted">Secure cloud login • works on every device</div>
+  </div>
+
+  <section id="quickLogin">
+    <div class="users">
+      <button class="user selected" data-id="poorvi"><span>👧</span>Poorvi</button>
+      <button class="user" data-id="mahiram"><span>👦</span>Mahiram</button>
+      <button class="user" data-id="guest"><span>👤</span>Guest</button>
+      <button class="user" data-id="admin"><span>👑</span>Admin</button>
+    </div>
+    <div class="pin">
+      <input id="pin" type="password" inputmode="numeric" maxlength="4" placeholder="••••" autocomplete="off">
+      <button id="eye" class="eye" type="button">👁️</button>
+    </div>
+    <button id="go" class="go">Continue →</button>
+    <button id="studentLoginLink" class="secondary" type="button">🔐 Login with Student Email</button>
+    <button id="parentLoginLink" class="secondary" type="button">👨‍👩‍👧 Parent Login</button>
+    <button id="parentRegisterLink" class="secondary" type="button">👨‍👩‍👧 Register Parent Account</button>
+    <button id="newUser" class="secondary" type="button">➕ Register New Student</button>
+  </section>
+
+  <section id="studentLogin" class="hidden">
+    <div class="form">
+      <input id="loginEmail" type="email" autocomplete="email" placeholder="Student email">
+      <div class="pin">
+        <input id="loginPin" type="password" inputmode="numeric" maxlength="4" placeholder="4-digit PIN" autocomplete="current-password">
+        <button id="loginEye" class="eye" type="button">👁️</button>
+      </div>
+    </div>
+    <button id="emailGo" class="go" type="button">Student Login →</button>
+  </section>
+
+  <section id="parentLoginBox" class="hidden">
+    <div class="form">
+      <input id="parentLoginEmail" type="email" autocomplete="email" placeholder="Parent email">
+      <input id="parentLoginPassword" type="password" autocomplete="current-password" placeholder="Parent password">
+    </div>
+    <button id="parentLoginBtn" class="go" type="button">Parent Login →</button>
+  </section>
+
+  <section id="parentRegisterBox" class="hidden">
+    <div class="form">
+      <input id="parentName" type="text" autocomplete="name" placeholder="Parent full name">
+      <input id="parentEmail" type="email" autocomplete="email" placeholder="Parent email">
+      <input id="parentPassword" type="password" autocomplete="new-password" placeholder="Create password (6+ characters)">
+    </div>
+    <div class="note">Parent accounts can enroll students only after entering the student's User ID, email ID and 4-digit PIN.</div>
+    <button id="parentRegisterBtn" class="go" type="button">Create Parent Account</button>
+  </section>
+
+<section id="registerBox" class="hidden">
+    <div class="form">
+      <input id="regName" type="text" autocomplete="name" placeholder="Student full name">
+      <input id="regEmail" type="email" autocomplete="email" placeholder="Student email">
+      <div class="pin">
+        <input id="regPin" type="password" inputmode="numeric" maxlength="4" placeholder="Create 4-digit PIN" autocomplete="new-password">
+        <button id="regEye" class="eye" type="button">👁️</button>
+      </div>
+    </div>
+    <div class="note">New accounts are created as Student accounts. Your 4-digit PIN is used for login.</div>
+    <button id="register" class="go" type="button">Create Student Account</button>
+  </section>
+
+  <div id="error" class="error"></div>
+  <button id="backLogin" class="back hidden" type="button">← Back to Login</button>
+  <div class="footer">Production 3.3.3 • Supabase Auth</div>
+</main>
+
+<script>
+(async function(){
+  try{
+    if(location.hash.includes("access_token=")){
+      const isParent=localStorage.getItem("kmtPendingParentRegistration");
+      const u=isParent?await KMT.finishParentEmailConfirmation():await KMT.finishEmailConfirmation();
+      if(u){
+        sessionStorage.setItem("poorviCurrentUser",u.id);
+        sessionStorage.setItem("poorviDisplayName",u.name);
+        sessionStorage.setItem("poorviRole",u.role);
+        sessionStorage.setItem("poorviAuthMode","supabase");
+        location.replace(u.role==="parent"?"parent.html":"index.html");
+        return;
+      }
+    }
+  }catch(e){console.error("Email confirmation:",e);}
+})();
+(function(){
+  let selected="poorvi";
+  const pin=document.getElementById("pin");
+  const err=document.getElementById("error");
+  const go=document.getElementById("go");
+  const quick=document.getElementById("quickLogin");
+  const studentLogin=document.getElementById("studentLogin");
+  const regBox=document.getElementById("registerBox");
+  const newUser=document.getElementById("newUser");
+  const back=document.getElementById("backLogin");
+  const studentLoginLink=document.getElementById("studentLoginLink");
+  const parentLoginLink=document.getElementById("parentLoginLink");
+  const parentRegisterLink=document.getElementById("parentRegisterLink");
+  const parentLoginBox=document.getElementById("parentLoginBox");
+  const parentRegisterBox=document.getElementById("parentRegisterBox");
+
+  function choose(id){
+    selected=id; err.textContent=""; pin.value="";
+    document.querySelectorAll(".user").forEach(b=>b.classList.toggle("selected",b.dataset.id===id));
+    pin.focus();
+  }
+
+  document.querySelectorAll(".user").forEach(b=>b.onclick=()=>choose(b.dataset.id));
+
+  document.getElementById("eye").onclick=()=>pin.type=pin.type==="password"?"text":"password";
+  document.getElementById("loginEye").onclick=()=>document.getElementById("loginPin").type=document.getElementById("loginPin").type==="password"?"text":"password";
+  document.getElementById("regEye").onclick=()=>document.getElementById("regPin").type=document.getElementById("regPin").type==="password"?"text":"password";
+
+  function showStudentLogin(){
+    err.textContent="";
+    quick.classList.add("hidden");
+    regBox.classList.add("hidden"); parentLoginBox.classList.add("hidden"); parentRegisterBox.classList.add("hidden");
+    studentLogin.classList.remove("hidden");
+    back.classList.remove("hidden");
+    document.getElementById("loginEmail").focus();
+  }
+
+  function showRegister(){
+    err.textContent="";
+    quick.classList.add("hidden");
+    studentLogin.classList.add("hidden"); parentLoginBox.classList.add("hidden"); parentRegisterBox.classList.add("hidden");
+    regBox.classList.remove("hidden");
+    back.classList.remove("hidden");
+    document.getElementById("regName").focus();
+  }
+
+  studentLoginLink.onclick=showStudentLogin;
+  newUser.onclick=showRegister;
+  back.onclick=()=>location.reload();
+
+  function showParentLogin(){
+    err.textContent=""; quick.classList.add("hidden"); studentLogin.classList.add("hidden"); regBox.classList.add("hidden"); parentRegisterBox.classList.add("hidden"); parentLoginBox.classList.remove("hidden"); back.classList.remove("hidden"); document.getElementById("parentLoginEmail").focus();
+  }
+  function showParentRegister(){
+    err.textContent=""; quick.classList.add("hidden"); studentLogin.classList.add("hidden"); regBox.classList.add("hidden"); parentLoginBox.classList.add("hidden"); parentRegisterBox.classList.remove("hidden"); back.classList.remove("hidden"); document.getElementById("parentName").focus();
+  }
+  parentLoginLink.onclick=showParentLogin;
+  parentRegisterLink.onclick=showParentRegister;
+
+  document.getElementById("parentLoginBtn").onclick=async()=>{
+    const email=document.getElementById("parentLoginEmail").value.trim();
+    const password=document.getElementById("parentLoginPassword").value;
+    if(!email||password.length<6){err.textContent="Enter parent email and password.";return;}
+    const b=document.getElementById("parentLoginBtn");b.disabled=true;b.textContent="Signing in…";err.textContent="";
+    try{
+      const u=await KMT.parentLogin(email,password);
+      sessionStorage.setItem("poorviCurrentUser",u.id);sessionStorage.setItem("poorviDisplayName",u.name);sessionStorage.setItem("poorviRole","parent");sessionStorage.setItem("poorviAuthMode","supabase");
+      location.replace("parent.html");
+    }catch(e){console.error(e);err.textContent=e.message||"Parent login failed.";}
+    finally{b.disabled=false;b.textContent="Parent Login →";}
+  };
+
+  document.getElementById("parentRegisterBtn").onclick=async()=>{
+    const name=document.getElementById("parentName").value.trim(),email=document.getElementById("parentEmail").value.trim(),password=document.getElementById("parentPassword").value;
+    if(name.length<2||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||password.length<6){err.textContent="Enter parent name, valid email and a password of at least 6 characters.";return;}
+    const b=document.getElementById("parentRegisterBtn");b.disabled=true;b.textContent="Creating account…";err.textContent="";
+    try{
+      const r=await KMT.registerParent(name,email,password);
+      if(r.confirmed===false){err.style.color="#067647";err.textContent="Parent account created. Check your email, confirm it, then return to Login.";b.textContent="Account Created ✓";return;}
+      const u=r.user;sessionStorage.setItem("poorviCurrentUser",u.id);sessionStorage.setItem("poorviDisplayName",u.name);sessionStorage.setItem("poorviRole","parent");sessionStorage.setItem("poorviAuthMode","supabase");location.replace("parent.html");
+    }catch(e){console.error(e);err.textContent=e.message||"Parent registration failed.";}
+    finally{b.disabled=false;b.textContent="Create Parent Account";}
+  };
+
+  async function quickLogin(){
+    if(!/^\d{4}$/.test(pin.value)){
+      err.textContent="Enter your 4-digit PIN."; return;
+    }
+    go.disabled=true; go.textContent="Signing in…"; err.textContent="";
+    try{
+      const u=await KMT.login(selected,pin.value);
+      sessionStorage.setItem("poorviCurrentUser",u.id);
+      sessionStorage.setItem("poorviDisplayName",u.name);
+      sessionStorage.setItem("poorviRole",u.role);
+      sessionStorage.setItem("poorviAuthMode","supabase");
+      location.replace(u.role==="admin"?"admin.html":"index.html");
+    }catch(e){
+      console.error(e);
+      err.textContent=e.message||"Login failed. Check your PIN.";
+    }finally{
+      go.disabled=false; go.textContent="Continue →";
+    }
+  }
+
+  async function emailLogin(){
+    const email=document.getElementById("loginEmail").value.trim();
+    const p=document.getElementById("loginPin").value;
+    if(!email||!/^\d{4}$/.test(p)){
+      err.textContent="Enter email and 4-digit PIN."; return;
+    }
+    const b=document.getElementById("emailGo");
+    b.disabled=true; b.textContent="Signing in…"; err.textContent="";
+    try{
+      const u=await KMT.loginWithEmail(email,p);
+      sessionStorage.setItem("poorviCurrentUser",u.id);
+      sessionStorage.setItem("poorviDisplayName",u.name);
+      sessionStorage.setItem("poorviRole",u.role);
+      sessionStorage.setItem("poorviAuthMode","supabase");
+      location.replace(u.role==="admin"?"admin.html":"index.html");
+    }catch(e){
+      console.error(e);
+      err.textContent=e.message||"Student login failed.";
+    }finally{
+      b.disabled=false; b.textContent="Student Login →";
+    }
+  }
+
+  document.getElementById("register").onclick=async()=>{
+    const name=document.getElementById("regName").value.trim();
+    const email=document.getElementById("regEmail").value.trim();
+    const p=document.getElementById("regPin").value;
+    if(name.length<2||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||!/^\d{4}$/.test(p)){
+      err.textContent="Enter name, valid email, and a 4-digit PIN."; return;
+    }
+    const b=document.getElementById("register");
+    b.disabled=true; b.textContent="Creating account…"; err.textContent="";
+    try{
+      const result=await KMT.registerStudent(name,email,p);
+      const u=result.user||result;
+      if(result.confirmed===false){
+        err.style.color="#067647";
+        err.textContent="Account created. Check your email, confirm it, then return to Login.";
+        b.textContent="Account Created ✓";
+        b.disabled=true;
+        return;
+      }
+      sessionStorage.setItem("poorviCurrentUser",u.id);
+      sessionStorage.setItem("poorviDisplayName",u.name);
+      sessionStorage.setItem("poorviRole","student");
+      sessionStorage.setItem("poorviAuthMode","supabase");
+      location.replace("index.html");
+    }catch(e){
+      console.error(e);
+      err.textContent=(e&&e.message)||"Registration failed. Please try again.";
+    }finally{
+      b.disabled=false; b.textContent="Create Student Account";
+    }
+  };
+
+  go.onclick=quickLogin;
+  document.getElementById("emailGo").onclick=emailLogin;
+  pin.onkeydown=e=>{if(e.key==="Enter")quickLogin()};
+  document.getElementById("loginPin").onkeydown=e=>{if(e.key==="Enter")emailLogin()};
+  document.getElementById("regPin").onkeydown=e=>{if(e.key==="Enter")document.getElementById("register").click()};
+  pin.focus();
+})();
+</script>
+</body>
+</html>
