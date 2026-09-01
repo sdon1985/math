@@ -114,12 +114,13 @@ function setupUserNav(){
 el("navPractice").onclick=()=>showPractice();
 el("navResults").onclick=()=>showResults();
 el("navProgress").onclick=()=>showProgress();
+el("navEnglish").onclick=()=>showEnglish();
 showPractice();
 }
 function showPractice(){
 setActive("navPractice");
 // Keep the existing worksheet controls visible; hide tracker/results cards.
-const ids=["progressTracker","result","parentReview","adminPastTests"];
+const ids=["progressTracker","result","parentReview","adminPastTests","englishPanel"];
 hideByIds(ids);
 }
 function showResults(){
@@ -134,6 +135,18 @@ setActive("navProgress");
 // Existing tracker section.
 const tracker=el("progressTracker");
 if(tracker){tracker.classList.remove("hidden");tracker.scrollIntoView({behavior:"smooth"});}
+}
+
+function showEnglish(){
+  setActive("navEnglish");
+  const ids=["progressTracker","result","parentReview","adminPastTests"];
+  hideByIds(ids);
+  const p=el("englishPanel");
+  if(p){
+    p.classList.remove("hidden");
+    if(window.KMT_SHOW_ENGLISH)window.KMT_SHOW_ENGLISH();
+    p.scrollIntoView({behavior:"smooth"});
+  }
 }
 document.addEventListener("DOMContentLoaded",function(){
 const c=$("count");

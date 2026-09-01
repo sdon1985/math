@@ -61,6 +61,19 @@ select,input{width:100%;padding:12px;border:1px solid #cdd6e2;border-radius:12px
 .overlay{position:fixed;inset:0;background:rgba(15,23,42,.5);display:flex;align-items:center;justify-content:center;padding:18px;z-index:100}.modal{background:#fff;border-radius:20px;padding:22px;width:min(420px,100%);box-shadow:0 25px 70px rgba(0,0,0,.25)}
 .footer{text-align:center;color:#7a8595;font-size:12px;padding:20px}
 
+.english-rule-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:12px}
+.english-rule{border:1px solid var(--line);border-radius:15px;padding:15px;background:#fff}
+.english-rule h3{margin:0 0 7px;font-size:17px}.english-rule .ruleNum{font-size:12px;font-weight:900;color:var(--brand);letter-spacing:.04em}
+.english-example{margin-top:9px;padding:9px;border-radius:10px;background:#f7f9fc;font-family:Georgia,serif}
+.eng-card{background:#f8fafc;border:1px solid var(--line);border-radius:15px;padding:18px}
+.eng-q{font-size:21px;font-weight:900;margin:10px 0 16px}
+.eng-choice{display:block;width:100%;text-align:left;margin:8px 0;padding:12px 14px;border:1px solid var(--line);border-radius:11px;background:#fff;font-weight:750}
+.eng-choice.correct{background:var(--good);border-color:#86efac}.eng-choice.wrong{background:#fff0f0;border-color:#fecaca}
+.eng-feedback{margin-top:12px;padding:11px;border-radius:10px;background:#eef4ff}
+.eng-stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.eng-stat{background:#f7f9fc;border-radius:12px;padding:12px;text-align:center}.eng-stat b{display:block;font-size:22px}
+@media(max-width:760px){.eng-stat-grid{grid-template-columns:repeat(2,1fr)}}
+
+
 .cloudStatusGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.cloudStatusCard{border:1px solid var(--line);border-radius:12px;padding:12px;background:#f8fafc;display:flex;justify-content:space-between;align-items:center}.cloudStatusCard span{font-size:22px;font-weight:950}.cloudWorksheetList{margin-top:10px}.cloudWorksheetRow{border:1px solid var(--line);border-radius:12px;padding:11px;margin-top:8px;background:#fff}.cloudWorksheetHead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.cloudPill{padding:5px 8px;border-radius:999px;font-size:12px;font-weight:800}.pendingPill{background:#fff3cd;color:#7a5200}.cloudMistakes{margin-top:10px;border-top:1px solid var(--line);padding-top:9px}.cloudMistakeTitle{font-weight:900;margin:8px 0 5px}.mistakeRow{display:grid;grid-template-columns:42px minmax(150px,1fr) auto;gap:8px;align-items:center;padding:7px 0;border-top:1px solid #edf0f4}.badText{color:#b42318}.cloudGood{padding:10px;border-radius:10px;background:#ecfdf3;color:#166534;font-weight:800}
 .hidden{display:none!important}
 @media(max-width:760px){.controls{grid-template-columns:1fr 1fr}.tableChecks{grid-template-columns:repeat(5,1fr)}.stats{grid-template-columns:repeat(2,1fr)}.topbar{align-items:flex-start;flex-direction:column}#welcomeTitle{font-size:26px}}
@@ -82,6 +95,7 @@ select,input{width:100%;padding:12px;border:1px solid #cdd6e2;border-radius:12px
  <button class="btn active" id="navPractice">📝 Practice</button>
  <button class="btn secondary" id="navResults">📊 Results</button>
  <button class="btn secondary" id="navProgress">📈 Progress</button>
+ <button class="btn secondary" id="navEnglish">📚 English</button>
 </nav>
 
 <main id="app">
@@ -148,6 +162,6 @@ select,input{width:100%;padding:12px;border:1px solid #cdd6e2;border-radius:12px
 <div id="modal" class="overlay hidden"><div class="modal"><h2>🔒 Parent Access</h2><div class="muted">Enter parent PIN.</div><input id="pin" type="password" inputmode="numeric"><div class="actions" style="margin-top:10px"><button class="btn primary" id="unlock">Unlock</button><button class="btn secondary" id="cancel">Cancel</button></div></div></div>
 <div class="footer">Production 3.3.3 • Supabase Cloud • Cross-device</div>
 
-<script src="./app-core.js"></script><script src="./session-nav.js"></script><script src="./cloud-bootstrap.js"></script>
+<script src="./app-core.js"></script><script src="./english-spalding.js"></script><script src="./session-nav.js"></script><script src="./cloud-bootstrap.js"></script>
 
 </body></html>
