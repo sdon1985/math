@@ -139,7 +139,7 @@ if(tracker){tracker.classList.remove("hidden");tracker.scrollIntoView({behavior:
 
 function showEnglish(){
   setActive("navEnglish");
-  const ids=["progressTracker","result","parentReview","adminPastTests"];
+  const ids=["parentPanel","progressTracker","result","parentReview","adminPastTests","pencilTools","ocrStatus","worksheetStatusCard"];
   hideByIds(ids);
   const p=el("englishPanel");
   if(p){

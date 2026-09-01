@@ -149,6 +149,24 @@ select,input{width:100%;padding:12px;border:1px solid #cdd6e2;border-radius:12px
  <div id="yearlyTracker" class="hidden" style="margin-top:12px"><div id="yearSummary"></div><div id="yearDetails"></div></div>
 </section>
 
+<section class="card hidden" id="englishPanel">
+ <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+  <div><div class="section-title">📚 English — Spalding</div><div class="muted">Phonograms • Spelling Rules • Practice • Dictation • Test</div></div>
+ </div>
+ <div class="navtabs english-tabs" style="margin-top:14px">
+  <button class="btn primary" id="engLearnBtn">📘 Rules</button>
+  <button class="btn secondary" id="engPracticeBtn">✏️ Practice</button>
+  <button class="btn secondary" id="engDictationBtn">🔊 Dictation</button>
+  <button class="btn secondary" id="engTestBtn">📝 Test</button>
+  <button class="btn secondary" id="engProgressBtn">📊 Progress</button>
+ </div>
+ <div id="englishLearn" style="margin-top:12px"></div>
+ <div id="englishPractice" class="hidden" style="margin-top:12px"></div>
+ <div id="englishDictation" class="hidden" style="margin-top:12px"></div>
+ <div id="englishTest" class="hidden" style="margin-top:12px"></div>
+ <div id="englishProgress" class="hidden" style="margin-top:12px"></div>
+</section>
+
 <!-- Legacy/admin workflow containers remain in the DOM for the proven engine,
      but are hidden from normal user navigation. -->
 <section class="hidden" id="adminSubmissionQueue"><div id="adminQueue"></div><button id="adminRefreshBtn"></button></section>
