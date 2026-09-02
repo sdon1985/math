@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Kids Math Test — Parent Portal</title>
-<script src="app-config.js"></script><script src="cloud.js?v=3.3.3"></script>
+<script src="app-config.js"></script><script src="cloud.js?v=3.4.2"></script>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#f4f7fb;color:#10233f;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
 .wrap{max-width:1100px;margin:30px auto;padding:0 18px}.card{background:#fff;border:1px solid #dbe4ef;border-radius:20px;padding:24px;margin:18px 0;box-shadow:0 5px 20px rgba(15,35,64,.05)}
 h1,h2{margin:0 0 8px}.muted{color:#60748f}.top{display:flex;justify-content:space-between;gap:12px;align-items:center}.btn{border:1px solid #d2ddeb;background:#fff;border-radius:12px;padding:11px 16px;font-weight:800;cursor:pointer}.primary{background:#2867e8;color:#fff;border-color:#2867e8}.danger{background:#fff3f3;color:#a11;border-color:#f0b6b6}
-.form{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;margin-top:16px}.form input{width:100%;padding:13px 14px;border:1px solid #ccd7e6;border-radius:12px;font-size:16px}.student{border:1px solid #dbe4ef;border-radius:16px;padding:18px;margin-top:14px}.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:14px}.stat{background:#f6f8fb;border-radius:12px;padding:14px;text-align:center}.stat b{display:block;font-size:22px}.empty{padding:20px;border:1px dashed #cbd6e4;border-radius:14px;color:#60748f;margin-top:12px}.error{color:#a11;margin-top:12px;font-weight:700}.success{color:#067647;margin-top:12px;font-weight:700}
+.form{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;margin-top:16px}.form input{width:100%;padding:13px 14px;border:1px solid #ccd7e6;border-radius:12px;font-size:16px}.student{border:1px solid #dbe4ef;border-radius:16px;padding:18px;margin-top:14px}.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:14px}.stat{background:#f6f8fb;border-radius:12px;padding:14px;text-align:center}.stat b{display:block;font-size:22px}.empty{padding:20px;border:1px dashed #cbd6e4;border-radius:14px;color:#60748f;margin-top:12px}.error{color:#a11;margin-top:12px;font-weight:700}.success{color:#067647;margin-top:12px;font-weight:700}.reviewItem{display:grid;grid-template-columns:minmax(180px,1fr) 100px auto;gap:10px;align-items:center;padding:12px 0;border-top:1px solid #dbe4ef}.reviewItem img{width:96px;height:70px;object-fit:contain;border:1px solid #ccd7e6;border-radius:8px;background:#fff}.reviewBtns{display:flex;gap:5px;flex-wrap:wrap}.reviewBtns button{padding:7px 9px;border:1px solid #d2ddeb;border-radius:8px;background:#fff;font-weight:800}.reviewBtns .selC{background:#dcfce7;border-color:#86efac;color:#166534}.reviewBtns .selW{background:#fee2e2;border-color:#fecaca;color:#991b1b}.reviewBtns .selN{background:#eef2f6;color:#475467}@media(max-width:750px){.reviewItem{grid-template-columns:1fr}.reviewItem img{width:100%;height:130px}}
 @media(max-width:750px){.topLine{align-items:flex-start;flex-direction:column}.form{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.top{align-items:flex-start;flex-direction:column}}
 </style>
 </head>
@@ -36,7 +36,9 @@ h1,h2{margin:0 0 8px}.muted{color:#60748f}.top{display:flex;justify-content:spac
  <div id="students"><div class="empty">Loading your enrolled students…</div></div>
 </section>
 
-<div class="footer muted" style="text-align:center;padding:20px">Production 3.3.3 • Supabase Cloud • Parent Portal</div>
+<section class="card hidden" id="reviewCard"><div class="top"><div><h2>📝 Review English Worksheet</h2><div id="reviewMeta" class="muted"></div></div><button id="closeReview" class="btn">Close</button></div><div id="reviewItems" style="margin-top:12px"></div><button id="saveReview" class="btn primary" style="margin-top:14px">✓ Save Review</button></section>
+
+<div class="footer muted" style="text-align:center;padding:20px">Production 3.4.2 • Supabase Cloud • Parent Portal</div>
 </div>
 <script>
 (async function(){
@@ -76,13 +78,33 @@ async function load(){
           const correct=answers.filter(a=>a.status==='correct').length;
           const total=Number(w.total||answers.length||0);
           const score=['approved','reviewed','complete'].includes(st)?correct+'/'+total:'Waiting for review';
-          return '<div class="row" style="border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:8px"><div><b>'+esc(w.operation||'Worksheet')+'</b><div class="muted">'+new Date(w.submitted_at).toLocaleString()+' • '+esc(label)+'</div></div><div><b>'+esc(score)+'</b></div></div>';
+          const isEnglish=String(w.operation||'').toLowerCase().includes('english');
+          const action=isEnglish&&['pending','under_review'].includes(st)?'<button class="btn primary reviewBtn" data-review="'+esc(w.id)+'">📝 Review</button>':isEnglish&&['approved','reviewed','complete'].includes(st)?'<button class="btn" data-review="'+esc(w.id)+'">View Review</button>':'';
+          return '<div class="row" style="border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:8px"><div><b>'+esc(w.operation||'Worksheet')+'</b><div class="muted">'+new Date(w.submitted_at).toLocaleString()+' • '+esc(label)+'</div></div><div style="display:flex;gap:8px;align-items:center"><b>'+esc(score)+'</b>'+action+'</div></div>';
         }).join('');
       }
     }else el.querySelector(".worksheetBox").innerHTML='<div class="error">Unable to load worksheet submissions.</div>';
   }
+  document.querySelectorAll('[data-review]').forEach(btn=>btn.onclick=()=>openReview(btn.dataset.review));
  }catch(e){console.error(e);$("students").innerHTML='<div class="error">Unable to load parent data. Please refresh or log in again.</div>';}
 }
+async function openReview(id){
+ try{
+  const students=await KMT.parentStudents(); let row=null;
+  for(const st of (students||[])){const ws=await KMT.parentWorksheets(st.student_id);const found=(ws||[]).find(w=>String(w.id)===String(id));if(found){row=found;break;}}
+  if(!row)throw Error('Worksheet was not found for your enrolled student.');
+  const sub=row.submission||{},answers=Array.isArray(sub.answers)?sub.answers:[];
+  const approved=['approved','reviewed','complete'].includes(String(row.status||'').toLowerCase());
+  $("reviewCard").classList.remove('hidden');$("reviewMeta").textContent=(row.user_name||row.user_id)+' • '+new Date(row.submitted_at).toLocaleString()+' • '+answers.length+' questions';
+  $("reviewItems").innerHTML=answers.map(a=>'<div class="reviewItem"><div><b>#'+(a.i+1)+' • Rule '+(a.rule||'')+'</b><div>'+esc(a.problem||'')+'</div><div class="muted">Expected: <b>'+esc(a.ans||'')+'</b> • Child: '+esc(a.ocr||'handwriting')+'</div></div>'+(a.image?'<img src="'+a.image+'">':'')+'<div class="reviewBtns"><button data-rs="correct" class="'+(a.status==='correct'?'selC':'')+'">✓ Correct</button><button data-rs="wrong" class="'+(a.status==='wrong'?'selW':'')+'">✗ Wrong</button><button data-rs="not_answered" class="'+(a.status==='not_answered'?'selN':'')+'">— Not Answered</button></div></div>').join('');
+  $("reviewCard").scrollIntoView({behavior:'smooth'});
+  if(approved){$("saveReview").disabled=true;$("saveReview").textContent='✓ Already Approved';return;}
+  $("saveReview").disabled=false;$("saveReview").textContent='✓ Save Review';
+  document.querySelectorAll('[data-rs]').forEach(b=>b.onclick=()=>{const item=b.closest('.reviewItem');const idx=Number((item.querySelector('b').textContent.match(/#(\d+)/)||[])[1])-1;answers.find(a=>a.i===idx).status=b.dataset.rs;document.querySelectorAll('.reviewItem').forEach(rowEl=>{const n=Number((rowEl.querySelector('b').textContent.match(/#(\d+)/)||[])[1])-1;const st=answers.find(a=>a.i===n)?.status;rowEl.querySelectorAll('[data-rs]').forEach(x=>x.classList.remove('selC','selW','selN'));const active=rowEl.querySelector('[data-rs="'+st+'"]');if(active)active.classList.add(st==='correct'?'selC':st==='wrong'?'selW':'selN');});});
+  $("saveReview").onclick=async()=>{if(answers.some(a=>a.status==='pending')){alert('Please mark every answer as Correct, Wrong, or Not Answered before saving.');return;}const b=$("saveReview");b.disabled=true;b.textContent='Saving…';try{await KMT.parentReviewWorksheet(row.id,answers,{userId:row.user_id,userName:row.user_name,date:new Date(row.submitted_at).toISOString().slice(0,10),elapsed:row.elapsed||0,operation:row.operation,range:row.range});alert('Review saved. Student progress is now updated.');$("reviewCard").classList.add('hidden');await load();}catch(e){alert(e.message||'Unable to save review.');b.disabled=false;b.textContent='✓ Save Review';}};
+ }catch(e){alert(e.message||'Unable to open review.');}
+}
+$("closeReview").onclick=()=>$("reviewCard").classList.add('hidden');
 $("welcome").textContent="Welcome, "+(sessionStorage.getItem("poorviDisplayName")||"Parent");
 $("refresh").onclick=async()=>{const b=$("refresh");b.disabled=true;b.textContent="Refreshing…";try{await load()}finally{b.disabled=false;b.textContent="↻ Refresh"}};
 $("logout").onclick=async()=>{try{await KMT.logout()}finally{sessionStorage.clear();location.replace("login.html")}};
@@ -95,7 +117,7 @@ $("enroll").onclick=async()=>{
  catch(e){console.error(e);$("enrollMsg").className="error";$("enrollMsg").textContent=e.message||"Student credentials could not be verified."}
  finally{b.disabled=false;b.textContent="Verify & Enroll";}
 };
-if(guard())load();
+if(guard())load().then(()=>{if(new URLSearchParams(location.search).get("review")==="english"){const b=document.querySelector("[data-review]");if(b)b.click();}});
 })();
 </script>
 </body></html>

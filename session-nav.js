@@ -56,6 +56,7 @@ const x=$(id); if(x)x.disabled=false;
 
 function hardEndCurrentUserTest(){
 
+try{if(typeof window.KMT_END_ENGLISH_TEST==='function')window.KMT_END_ENGLISH_TEST();}catch(e){}
 // User switching intentionally ends the current user's active session.
 clearActiveSession(currentUser?.id||"guest");
 // Stop every timer pattern used by previous versions.

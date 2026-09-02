@@ -65,12 +65,16 @@ select,input{width:100%;padding:12px;border:1px solid #cdd6e2;border-radius:12px
 .english-rule{border:1px solid var(--line);border-radius:15px;padding:15px;background:#fff}
 .english-rule h3{margin:0 0 7px;font-size:17px}.english-rule .ruleNum{font-size:12px;font-weight:900;color:var(--brand);letter-spacing:.04em}
 .english-example{margin-top:9px;padding:9px;border-radius:10px;background:#f7f9fc;font-family:Georgia,serif}
+.phon-range{margin-top:12px;padding:12px;border:1px solid var(--line);border-radius:12px;background:#fbfcfe}.phon-range-buttons{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px;align-items:center}.phon-custom{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.phon-custom input{width:64px;padding:8px;border:1px solid var(--line);border-radius:8px}.phon-summary{margin:14px 0 8px;font-weight:800}.phon-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;margin-top:14px}.phon-card{min-height:82px;border:1px solid var(--line);border-radius:12px;background:#fff;padding:9px;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:4px}.phon-card.selected{border:2px solid var(--brand);background:#f2f6ff}.phon-card.learned{box-shadow:inset 0 0 0 2px #22a06b}.phon-card strong{font-size:23px}.phon-card small{font-size:11px;color:var(--muted);line-height:1.2}.phon-num{font-size:10px;font-weight:800;color:var(--muted)}.phon-big{font-size:58px;font-weight:900;text-align:center;padding:10px 0 2px}.phon-sounds{text-align:center;font-size:18px}.phon-examples{text-align:center;margin-top:6px;color:var(--muted)}.phon-actions{display:flex;gap:8px;justify-content:center;align-items:center;flex-wrap:wrap;margin:12px 0}.phon-write{margin-top:14px}.phon-write canvas{width:100%;max-width:620px;height:150px;border:2px dashed var(--line);border-radius:12px;background:#fff;touch-action:none;display:block;margin-top:7px}.phon-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px}@media(max-width:600px){.phon-grid{grid-template-columns:repeat(4,1fr)}.phon-card{min-height:70px;padding:7px}.phon-card strong{font-size:20px}.phon-big{font-size:48px}}
+
 .eng-card{background:#f8fafc;border:1px solid var(--line);border-radius:15px;padding:18px}
 .eng-q{font-size:21px;font-weight:900;margin:10px 0 16px}
 .eng-choice{display:block;width:100%;text-align:left;margin:8px 0;padding:12px 14px;border:1px solid var(--line);border-radius:11px;background:#fff;font-weight:750}
 .eng-choice.correct{background:var(--good);border-color:#86efac}.eng-choice.wrong{background:#fff0f0;border-color:#fecaca}
 .eng-feedback{margin-top:12px;padding:11px;border-radius:10px;background:#eef4ff}
 .eng-stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.eng-stat{background:#f7f9fc;border-radius:12px;padding:12px;text-align:center}.eng-stat b{display:block;font-size:22px}
+.eng-test-controls{display:flex;gap:12px;flex-wrap:wrap;margin:12px 0}.eng-test-controls label{display:flex;flex-direction:column;gap:5px;font-weight:800}.eng-test-controls select,.eng-input,.eng-answer-input{padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:16px}.eng-test-top{display:flex;justify-content:space-between;align-items:center;gap:10px}.eng-writing-wrap{margin-top:12px}.eng-pad{display:block;width:100%;min-height:150px;height:210px;background:#fff;border:2px solid #aeb8c4;border-radius:12px;touch-action:none}.eng-pencil-tools,.eng-test-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}.eng-answer-input{width:100%;font-size:24px;font-family:Georgia,serif}.eng-review-item{display:grid;grid-template-columns:minmax(180px,1fr) 100px auto;gap:10px;align-items:center;border-top:1px solid var(--line);padding:12px 0}.eng-review-item img{width:96px;height:70px;object-fit:contain;border:1px solid var(--line);border-radius:8px;background:#fff}.eng-review-item .status{display:flex;gap:5px;flex-wrap:wrap}.eng-review-item .status button{padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:#fff;font-weight:800}.eng-review-item .selC{background:var(--good)!important;color:#166534;border-color:#86efac!important}.eng-review-item .selW{background:#fee2e2!important;color:#991b1b;border-color:#fecaca!important}.eng-review-item .selN{background:#eef2f6!important;color:#475467}.eng-review-line{padding:8px 0;border-top:1px solid var(--line)}
+@media(max-width:700px){.eng-review-item{grid-template-columns:1fr}.eng-review-item img{width:100%;height:130px}}
 @media(max-width:760px){.eng-stat-grid{grid-template-columns:repeat(2,1fr)}}
 
 
@@ -80,11 +84,11 @@ select,input{width:100%;padding:12px;border:1px solid #cdd6e2;border-radius:12px
 @media(max-width:520px){.page{padding:10px}.controls{grid-template-columns:1fr}.tableChecks{grid-template-columns:repeat(4,1fr)}.info{grid-template-columns:1fr}.cell{min-height:92px}.q{font-size:15px}.pad{width:68px;height:48px}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-<script src="./app-config.js"></script><script src="./cloud.js?v=3.3.3"></script>
+<script src="./app-config.js"></script><script src="./cloud.js?v=3.4.2"></script>
 </head><body>
 <div class="page">
 <header class="topbar">
-  <div><div class="eyebrow">KIDS MATH TEST • PRODUCTION 3.3.3</div><div id="welcomeTitle">Welcome</div><div class="muted">Your private learning dashboard</div></div>
+  <div><div class="eyebrow">KIDS MATH TEST • PRODUCTION 3.4.2</div><div id="welcomeTitle">Welcome</div><div class="muted">Your private learning dashboard</div></div>
   <div class="top-actions">
     <button class="btn secondary" id="switchUserBtn">⇄ Switch User</button>
     <a class="btn secondary" href="admin.html">👑 Admin</a>
@@ -178,7 +182,7 @@ select,input{width:100%;padding:12px;border:1px solid #cdd6e2;border-radius:12px
 </main>
 </div>
 <div id="modal" class="overlay hidden"><div class="modal"><h2>🔒 Parent Access</h2><div class="muted">Enter parent PIN.</div><input id="pin" type="password" inputmode="numeric"><div class="actions" style="margin-top:10px"><button class="btn primary" id="unlock">Unlock</button><button class="btn secondary" id="cancel">Cancel</button></div></div></div>
-<div class="footer">Production 3.3.3 • Supabase Cloud • Cross-device</div>
+<div class="footer">Production 3.4.2 • Supabase Cloud • Cross-device</div>
 
 <script src="./app-core.js"></script><script src="./english-spalding.js"></script><script src="./session-nav.js"></script><script src="./cloud-bootstrap.js"></script>
 

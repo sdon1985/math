@@ -178,6 +178,19 @@
     await ensureParentSession();
     return rpc('parent_worksheets',{p_student_id:String(studentId)});
   }
+  async function parentReviewWorksheet(id,answers,meta){
+    await ensureParentSession();
+    return rpc('parent_review_worksheet',{
+      p_worksheet_id:String(id),
+      p_answers:Array.isArray(answers)?answers:[],
+      p_user_id:String(meta?.userId||''),
+      p_user_name:String(meta?.userName||''),
+      p_date:String(meta?.date||new Date().toISOString().slice(0,10)),
+      p_elapsed:Number(meta?.elapsed||0),
+      p_operation:String(meta?.operation||'Worksheet'),
+      p_range:String(meta?.range||'')
+    });
+  }
 
   async function adminProgress(){
     if(S.user?.role!=="admin")throw Error('Admin access required.');
@@ -455,5 +468,5 @@
 
   async function worksheets(uid){return api('/rest/v1/worksheets?select=*&user_id=eq.'+encodeURIComponent(uid)+'&order=submitted_at.desc')}
   async function allWorksheets(){return api('/rest/v1/worksheets?select=*&order=submitted_at.desc')}
-  window.KMT={finishEmailConfirmation,finishParentEmailConfirmation,load,login,loginWithEmail,registerStudent,registerParent,parentLogin,enrollStudent,parentStudents,parentProgress,parentWorksheets,adminProgress,adminParentOverview,adminParentSubscribe,adminParentUnsubscribe,adminDeleteParent,deleteStudentAccount,logout,me,submit,pending,reviewed,progress,progressFromRows,worksheets,allWorksheets,voidWorksheet,syncStudentPin,api};
+  window.KMT={finishEmailConfirmation,finishParentEmailConfirmation,load,login,loginWithEmail,registerStudent,registerParent,parentLogin,enrollStudent,parentStudents,parentProgress,parentWorksheets,parentReviewWorksheet,adminProgress,adminParentOverview,adminParentSubscribe,adminParentUnsubscribe,adminDeleteParent,deleteStudentAccount,logout,me,submit,pending,reviewed,progress,progressFromRows,worksheets,allWorksheets,voidWorksheet,syncStudentPin,api};
 })();
