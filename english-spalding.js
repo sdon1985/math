@@ -63,7 +63,8 @@
   const STORE='kmtEnglishSpaldingProgress';
   const ACTIVE='kmtEnglishActiveSession';
   let state=JSON.parse(localStorage.getItem(STORE)||'null')||{practice:0,correct:0,tests:0,testCorrect:0,review:[],ruleSeen:{},phonogramsLearned:{}};
-  let practiceIndex=0,dictIndex=0,testSet=[],testIndex=0,testStarted=false,testDone=false,testScore=0,testBegin=0,testLeft=240,testTimer=null,testMode='pencil',testSubmission=null,pencilTool='write';
+  let engCategory='spelling',practiceIndex=0,dictIndex=0,testSet=[],testIndex=0,testStarted=false,testDone=false,testScore=0,testBegin=0,testLeft=240,testTimer=null,testMode='pencil',testSubmission=null,pencilTool='write';
+  const activeKey=()=>ACTIVE+'_'+engCategory;
 
   function save(){localStorage.setItem(STORE,JSON.stringify(state));}
   function pct(a,b){return b?Math.round(a*100/b):0;}
@@ -117,12 +118,25 @@
   function setPhonTool(m){phonTool=m;if($('phonWrite'))$('phonWrite').className=m==='write'?'btn primary':'btn secondary';if($('phonErase'))$('phonErase').className=m==='erase'?'btn':'btn secondary';if($('phonMode'))$('phonMode').textContent=m==='erase'?'Erase mode — tap writing to clear':'Write mode';}
   function setPhonRange(a,b){phonRangeStart=Math.max(1,Math.min(70,a));phonRangeEnd=Math.max(phonRangeStart,Math.min(70,b));phonIndex=0;document.querySelectorAll('.phon-range-btn').forEach(x=>x.classList.remove('primary'));const match=document.querySelector('[data-range="'+phonRangeStart+'-'+phonRangeEnd+'"]');if(match)match.classList.add('primary');renderPhonogramTrainer();}
   function renderLearn(){
-    $('englishLearn').innerHTML='<div class="eng-card"><b>Spalding Phonograms</b><p class="muted">Your school newsletter introduces phonograms 1–26 first, then 27–54, and later reviews all 70.</p><div class="phon-range"><b>Choose a range:</b><div class="phon-range-buttons">'+PHONOGRAM_PRESETS.map(x=>'<button type="button" class="btn '+(x[0]===1&&x[1]===26?'primary':'secondary')+' phon-range-btn" data-range="'+x[0]+'-'+x[1]+'">'+esc(x[2])+'</button>').join('')+'<label class="phon-custom">Custom <input id="phonStart" type="number" min="1" max="70" value="1"><span>to</span><input id="phonEnd" type="number" min="1" max="70" value="70"><button type="button" class="btn secondary" id="phonApply">Apply</button></label></div></div><div id="phonogramRangeSummary" class="phon-summary"></div><div id="phonogramCurrent"></div><div id="phonogramGrid" class="phon-grid"></div></div><div class="eng-card" style="margin-top:12px"><b>Spalding Spelling Rules</b><div class="muted" style="margin-top:5px">Training sequence: Hear → Say → Identify → Write → Check → Repeat</div><div class="english-rule-grid" style="margin-top:12px">'+RULES.map(r=>'<article class="english-rule"><div class="ruleNum">SPELLING RULE '+r[0]+'</div><h3>'+esc(r[1])+'</h3><div>'+esc(r[2])+'</div>'+(r[3]?'<div class="english-example"><b>Examples:</b> '+esc(r[3])+'</div>':'')+'</article>').join('')+'</div></div>';
+    if(engCategory==='phonograms'){
+      $('englishLearn').innerHTML='<div class="eng-card"><h3>🔤 Phonogram Learning</h3><p class="muted">Learn the 70 Spalding phonograms independently from spelling rules.</p><div class="phon-range"><b>Choose a range:</b><div class="phon-range-buttons">'+PHONOGRAM_PRESETS.map(x=>'<button type="button" class="btn '+(x[0]===1&&x[1]===26?'primary':'secondary')+' phon-range-btn" data-range="'+x[0]+'-'+x[1]+'">'+esc(x[2])+'</button>').join('')+'<label class="phon-custom">Custom <input id="phonStart" type="number" min="1" max="70" value="1"><span>to</span><input id="phonEnd" type="number" min="1" max="70" value="70"><button type="button" class="btn secondary" id="phonApply">Apply</button></label></div></div><div id="phonogramRangeSummary" class="phon-summary"></div><div id="phonogramCurrent"></div><div id="phonogramGrid" class="phon-grid"></div></div>';
+      document.querySelectorAll('.phon-range-btn').forEach(b=>b.onclick=()=>{const [a,z]=b.dataset.range.split('-').map(Number);setPhonRange(a,z);});
+      $('phonApply').onclick=()=>setPhonRange(Number($('phonStart').value)||1,Number($('phonEnd').value)||70);
+      renderPhonogramTrainer(); return;
+    }
+    $('englishLearn').innerHTML='<div class="eng-card" style="margin-top:12px"><b>Spalding Spelling Rules</b><div class="muted" style="margin-top:5px">Training sequence: Hear → Say → Identify → Write → Check → Repeat</div><div class="english-rule-grid" style="margin-top:12px">'+RULES.map(r=>'<article class="english-rule"><div class="ruleNum">SPELLING RULE '+r[0]+'</div><h3>'+esc(r[1])+'</h3><div>'+esc(r[2])+'</div>'+(r[3]?'<div class="english-example"><b>Examples:</b> '+esc(r[3])+'</div>':'')+'</article>').join('')+'</div></div>';
     document.querySelectorAll('.phon-range-btn').forEach(b=>b.onclick=()=>{const [a,z]=b.dataset.range.split('-').map(Number);setPhonRange(a,z);});
     $('phonApply').onclick=()=>setPhonRange(Number($('phonStart').value)||1,Number($('phonEnd').value)||70);
     renderPhonogramTrainer();
   }
   function renderPractice(){
+    if(engCategory==='phonograms'){
+      const p=PHONOGRAMS[practiceIndex%70], wrong1=PHONOGRAMS[(practiceIndex+7)%70][1], wrong2=PHONOGRAMS[(practiceIndex+13)%70][1];
+      const choices=[p[1],wrong1===p[1]?PHONOGRAMS[(practiceIndex+21)%70][1]:wrong1,wrong2===p[1]?PHONOGRAMS[(practiceIndex+29)%70][1]:wrong2].sort(()=>Math.random()-.5);
+      $('englishPractice').innerHTML='<div class="eng-card"><div class="ruleNum">PHONOGRAM '+p[0]+' OF 70</div><div class="eng-q">Which phonogram makes these sound(s): <b>'+esc(p[2])+'</b>?</div><div id="engChoices">'+choices.map((x,i)=>'<button class="eng-choice" data-i="'+i+'">'+esc(x)+'</button>').join('')+'</div><div id="engFeedback"></div></div>';
+      $('engChoices').querySelectorAll('button').forEach(b=>b.onclick=()=>{const good=b.textContent===p[1];$('engChoices').querySelectorAll('button').forEach(x=>x.disabled=true);state.practice++;if(good){state.correct++;b.classList.add('correct');}else{b.classList.add('wrong');state.review.push({phonogram:p[0],answer:p[1],at:Date.now()});}save();$('engFeedback').innerHTML='<div class="eng-feedback">'+(good?'✅ Correct!':'❌ Correct answer: <b>'+esc(p[1])+'</b>')+'<br>Example: '+esc(p[3])+'</div><button class="btn primary" id="engNextPractice">Next →</button>';$('engNextPractice').onclick=()=>{practiceIndex++;renderPractice();};});
+      return;
+    }
     const q=[
       {r:1,q:'Which spelling is correct?',c:['qeen','queen','kwen'],a:'queen',why:'Rule 1: q is always followed by u.'},
       {r:2,q:'Which word uses c to say /s/?',c:['cat','city','cup'],a:'city',why:'Rule 2: c before e, i, or y says /s/.'},
@@ -150,28 +164,52 @@
     save();$('engFeedback').innerHTML='<div class="eng-feedback">'+(good?'✅ <b>Correct!</b>':'❌ <b>Try again.</b>')+'<br>'+(good?'':'Correct answer: <b>'+esc(q.a)+'</b><br>')+esc(q.why)+'</div><button class="btn primary" id="engNextPractice">Next →</button>';$('engNextPractice').onclick=()=>{practiceIndex++;renderPractice();};
   }
   function renderDictation(){
+    const isPh=engCategory==='phonograms';
+    if(isPh){
+      const p=PHONOGRAMS[dictIndex%70];
+      $('englishDictation').innerHTML='<div class="eng-card"><div class="ruleNum">PHONOGRAM '+p[0]+' OF 70</div><div class="eng-q">🔊 Listen to the sounds, then write the phonogram.</div><button class="btn primary" id="speakDictation">🔊 Hear Sounds</button><div class="pencil-label">✏️ Pencil Writing</div><div class="eng-writing-wrap"><canvas id="dictPad" class="eng-pad" width="700" height="210"></canvas><div class="eng-pencil-tools"><button class="btn primary" id="dictWriteBtn">🖊️ Write</button><button class="btn secondary" id="dictEraseBtn">🧽 Erase</button><span id="dictModeText" class="muted">Write mode — Apple Pencil</span></div></div><div id="dictFeedback"></div><button class="btn primary" id="dictCheck">✓ Check</button> <button class="btn secondary" id="dictNext">Next →</button></div>';
+      $('speakDictation').onclick=()=>speak('Phonogram '+p[1]+'. Sounds: '+p[2]);setupDictationPad();
+      $('dictCheck').onclick=()=>{const filled=!canvasBlank($('dictPad'));state.practice++;if(filled)state.correct++;else state.review.push({phonogram:p[0],answer:p[1],at:Date.now()});save();$('dictFeedback').innerHTML='<div class="eng-feedback">'+(filled?'✅ Writing recorded.':'⚠️ Please write the phonogram first.')+'<br>Target: <b>'+esc(p[1])+'</b></div>';};
+      $('dictNext').onclick=()=>{dictIndex++;renderDictation();};return;
+    }
     const item=TEST_WORDS[dictIndex%TEST_WORDS.length];
-    $('englishDictation').innerHTML='<div class="eng-card"><div class="ruleNum">SPALDING RULE '+item.r+'</div><div class="eng-q">🔊 Listen, then spell the word.</div><button class="btn primary" id="speakDictation">🔊 Hear Word</button><input id="dictInput" class="eng-input" autocapitalize="none" autocomplete="off" spellcheck="false" placeholder="Type the spelling here"><div id="dictFeedback"></div><button class="btn primary" id="dictCheck">Check</button> <button class="btn secondary" id="dictNext">Next</button></div>';
-    $('speakDictation').onclick=()=>speak(item.a);$('dictCheck').onclick=()=>{const v=$('dictInput').value.trim();const good=v.toLowerCase()===item.a.toLowerCase();if(!good)state.review.push({rule:item.r,answer:item.a,at:Date.now()});else state.correct++;state.practice++;save();$('dictFeedback').innerHTML='<div class="eng-feedback">'+(good?'✅ Correct!':'❌ Correct spelling: <b>'+esc(item.a)+'</b>')+'<br>'+esc(item.why)+'</div>';};$('dictNext').onclick=()=>{dictIndex++;renderDictation();};
+    $('englishDictation').innerHTML='<div class="eng-card"><div class="ruleNum">SPALDING RULE '+item.r+'</div><div class="eng-q">🔊 Listen, then spell the word.</div><button class="btn primary" id="speakDictation">🔊 Hear Word</button><div class="pencil-label">✏️ Pencil Writing</div><div class="eng-writing-wrap"><canvas id="dictPad" class="eng-pad" width="700" height="210"></canvas><div class="eng-pencil-tools"><button class="btn primary" id="dictWriteBtn">🖊️ Write</button><button class="btn secondary" id="dictEraseBtn">🧽 Erase</button><span id="dictModeText" class="muted">Write mode — Apple Pencil</span></div></div><input id="dictInput" class="eng-input" autocapitalize="none" autocomplete="off" spellcheck="false" placeholder="Or type the spelling here"><div id="dictFeedback"></div><button class="btn primary" id="dictCheck">Check</button> <button class="btn secondary" id="dictNext">Next</button></div>';
+    $('speakDictation').onclick=()=>speak(item.a);setupDictationPad();
+    $('dictCheck').onclick=()=>{const v=$('dictInput').value.trim(),filled=v.length||!canvasBlank($('dictPad')),good=v.toLowerCase()===item.a.toLowerCase();if(filled)state.practice++;if(good)state.correct++;else if(filled)state.review.push({rule:item.r,answer:item.a,at:Date.now()});save();$('dictFeedback').innerHTML='<div class="eng-feedback">'+(good?'✅ Correct!':filled?'❌ Correct spelling: <b>'+esc(item.a)+'</b>':'⚠️ Write or type an answer first.')+'<br>'+esc(item.why)+'</div>';};$('dictNext').onclick=()=>{dictIndex++;renderDictation();};
   }
+  function setupDictationPad(){
+    const c=$('dictPad'),x=c.getContext('2d'),scale=devicePixelRatio||1;x.setTransform(scale,0,0,scale,0,0);x.lineWidth=3;x.lineCap='round';let drawing=false,tool='write';
+    const point=e=>{const r=c.getBoundingClientRect();return{x:(e.clientX-r.left)*c.width/r.width/scale,y:(e.clientY-r.top)*c.height/r.height/scale}};
+    c.onpointerdown=e=>{if(tool==='erase'){e.preventDefault();x.clearRect(0,0,c.width,c.height);tool='write';setDictTool('write');return;}e.preventDefault();c.setPointerCapture(e.pointerId);drawing=true;const p=point(e);x.beginPath();x.moveTo(p.x,p.y);};
+    c.onpointermove=e=>{if(!drawing)return;e.preventDefault();const p=point(e);x.lineTo(p.x,p.y);x.stroke();};c.onpointerup=()=>drawing=false;c.onpointercancel=()=>drawing=false;
+    $('dictWriteBtn').onclick=()=>{tool='write';setDictTool('write')};$('dictEraseBtn').onclick=()=>{tool='erase';setDictTool('erase')};
+  }
+  function setDictTool(m){const w=$('dictWriteBtn'),e=$('dictEraseBtn');if(w)w.className=m==='write'?'btn primary':'btn secondary';if(e)e.className=m==='erase'?'btn':'btn secondary';if($('dictModeText'))$('dictModeText').textContent=m==='erase'?'Erase mode — tap writing to clear it':'Write mode — Apple Pencil';}
+
   function speak(text){try{if('speechSynthesis' in window){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.rate=.78;speechSynthesis.speak(u);}}catch(e){}}
 
   function renderTestStart(){
     const active=testStarted&&!testDone;
+    if(engCategory==='phonograms'){ renderPhonogramTestStart(); return; }
     if(active){renderTestQuestion();return;}
     $('englishTest').innerHTML='<div class="eng-card"><h3>📝 Spalding Test</h3><p>Submit the completed test for <b>Parent/Admin Review</b>. The reviewer determines Correct, Wrong, or Not Answered.</p><div class="eng-test-controls"><label>Answer Method <select id="engAnswerMode"><option value="pencil">✏️ Apple Pencil</option><option value="keyboard">⌨️ Keyboard</option></select></label><label>Timer <select id="engMinutes"><option value="4">4 minutes</option><option value="5">5 minutes</option></select></label></div><button class="btn primary" id="startEnglishTest">▶ Start Test</button>'+(hasSubmittedReview()?'<button class="btn secondary" id="englishParentReviewBtn">👨‍👩‍👧 Parent Review</button>':'')+'</div>';
     $('startEnglishTest').onclick=startEnglishTest;
     if($('englishParentReviewBtn'))$('englishParentReviewBtn').onclick=()=>openParentReview();
   }
+  function renderPhonogramTestStart(){
+    const active=testStarted&&!testDone;if(active){renderTestQuestion();return;}
+    $('englishTest').innerHTML='<div class="eng-card"><h3>🔤 Phonogram Test</h3><p>Test only phonograms 1–70. This is completely separate from the Spelling Test.</p><div class="eng-test-controls"><label>Answer Method <select id="engAnswerMode"><option value="pencil">✏️ Apple Pencil</option><option value="keyboard">⌨️ Keyboard</option></select></label><label>Timer <select id="engMinutes"><option value="4">4 minutes</option><option value="5">5 minutes</option></select></label></div><button class="btn primary" id="startEnglishTest">▶ Start Phonogram Test</button></div>';
+    $('startEnglishTest').onclick=startEnglishTest;
+  }
   function startEnglishTest(){
-    if(testStarted)return;testMode=$('engAnswerMode').value;testSet=[...TEST_WORDS].sort(()=>Math.random()-.5).slice(0,10);testIndex=0;testScore=0;testDone=false;testStarted=true;testBegin=Date.now();testLeft=(+$('engMinutes').value||4)*60;testSubmission=null;renderTestQuestion();persistActive();startEnglishTimer();
+    if(testStarted)return;testMode=$('engAnswerMode').value;testSet=(engCategory==='phonograms'?[...PHONOGRAMS].sort(()=>Math.random()-.5).slice(0,10).map(p=>({r:p[0],p:'Write the phonogram after hearing its sounds: '+p[2],a:p[1],why:'Phonogram '+p[0]})):[...TEST_WORDS].sort(()=>Math.random()-.5).slice(0,10));testIndex=0;testScore=0;testDone=false;testStarted=true;testBegin=Date.now();testLeft=(+$('engMinutes').value||4)*60;testSubmission=null;renderTestQuestion();persistActive();startEnglishTimer();
   }
   function startEnglishTimer(){clearInterval(testTimer);testTimer=setInterval(()=>{testLeft=Math.max(0,Math.ceil(((testBegin+(+$('engMinutes')?.value||4)*60000)-Date.now())/1000));updateEnglishTimer();persistActive();if(testLeft<=0){clearInterval(testTimer);testTimer=null;submitEnglishTest(true);}},250);}
   function updateEnglishTimer(){const x=$('engTestTimer');if(x){x.textContent=Math.floor(testLeft/60)+':'+String(testLeft%60).padStart(2,'0');x.classList.toggle('warn',testLeft<=30);}}
   function renderTestQuestion(){
     if(testIndex>=testSet.length){submitEnglishTest(false);return;}
     const q=testSet[testIndex];
-    $('englishTest').innerHTML='<div class="eng-card"><div class="eng-test-top"><b>Question '+(testIndex+1)+' of '+testSet.length+'</b><span id="engTestTimer" class="timer">'+Math.floor(testLeft/60)+':'+String(testLeft%60).padStart(2,'0')+'</span></div><div class="ruleNum">SPALDING RULE '+q.r+'</div><div class="eng-q">'+esc(q.p)+'</div>'+(testMode==='pencil'?'<div class="eng-writing-wrap"><canvas id="engPad" class="eng-pad" width="700" height="210"></canvas><div class="eng-pencil-tools"><button class="btn primary" id="engWriteBtn">🖊️ Write</button><button class="btn secondary" id="engEraseBtn">🧽 Erase</button><span id="engModeText" class="muted">Write mode — Apple Pencil</span></div></div>':'<input id="engAnswerInput" class="eng-answer-input" autocapitalize="none" autocomplete="off" spellcheck="false" placeholder="Type your answer">')+'<div class="eng-test-actions"><button class="btn secondary" id="engNextBtn">'+(testIndex===testSet.length-1?'Finish':'Next →')+'</button><button class="btn primary" id="engSubmitBtn">✓ Submit Test</button></div></div>';
+    $('englishTest').innerHTML='<div class="eng-card"><div class="eng-test-top"><b>Question '+(testIndex+1)+' of '+testSet.length+'</b><span id="engTestTimer" class="timer">'+Math.floor(testLeft/60)+':'+String(testLeft%60).padStart(2,'0')+'</span></div><div class="ruleNum">'+(engCategory==='phonograms'?'PHONOGRAM '+q.r:'SPALDING RULE '+q.r)+'</div><div class="eng-q">'+esc(q.p)+'</div>'+(testMode==='pencil'?'<div class="eng-writing-wrap"><canvas id="engPad" class="eng-pad" width="700" height="210"></canvas><div class="eng-pencil-tools"><button class="btn primary" id="engWriteBtn">🖊️ Write</button><button class="btn secondary" id="engEraseBtn">🧽 Erase</button><span id="engModeText" class="muted">Write mode — Apple Pencil</span></div></div>':'<input id="engAnswerInput" class="eng-answer-input" autocapitalize="none" autocomplete="off" spellcheck="false" placeholder="Type your answer">')+'<div class="eng-test-actions"><button class="btn secondary" id="engNextBtn">'+(testIndex===testSet.length-1?'Finish':'Next →')+'</button><button class="btn primary" id="engSubmitBtn">✓ Submit Test</button></div></div>';
     if(testMode==='pencil')setupEnglishPad();else $('engAnswerInput').addEventListener('input',persistActive);
     $('engNextBtn').onclick=()=>{captureEnglishAnswer();testIndex++;renderTestQuestion();persistActive();};
     $('engSubmitBtn').onclick=()=>{if(confirm('Submit the English test now?'))submitEnglishTest(false);};
@@ -189,7 +227,7 @@
   function setEnglishTool(m){pencilTool=m;if($('engWriteBtn'))$('engWriteBtn').className=m==='write'?'btn primary':'btn secondary';if($('engEraseBtn'))$('engEraseBtn').className=m==='erase'?'btn':'btn secondary';if($('engModeText'))$('engModeText').textContent=m==='erase'?'Erase mode — tap the answer to clear it':'Write mode — Apple Pencil';}
   function canvasBlank(c){if(!c)return true;const d=c.getContext('2d').getImageData(0,0,c.width,c.height).data;let n=0;for(let i=0;i<d.length;i+=4)if(d[i+3]>20&&(d[i]<245||d[i+1]<245||d[i+2]<245))n++;return n<30;}
   function captureEnglishAnswer(){
-    if(!testSubmission)testSubmission={id:'eng_'+Date.now(),answers:[],userId:currentUser?.id||'',userName:currentUser?.name||'',subject:'english',operation:'English - Spalding',range:'Rules 1–6, 9–29',total:testSet.length,elapsed:Math.max(0,Math.round((Date.now()-testBegin)/1000)),created:Date.now()};
+    if(!testSubmission)testSubmission={id:'eng_'+Date.now(),answers:[],userId:currentUser?.id||'',userName:currentUser?.name||'',subject:'english',operation:engCategory==='phonograms'?'English - Phonograms':'English - Spalding',range:engCategory==='phonograms'?'Phonograms 1–70':'Rules 1–6, 9–29',total:testSet.length,elapsed:Math.max(0,Math.round((Date.now()-testBegin)/1000)),created:Date.now()};
     const q=testSet[testIndex],old=testSubmission.answers.find(a=>a.i===testIndex);
     let item=old||{i:testIndex,rule:q.r,problem:q.p,ans:q.a,ocr:'',filled:false,status:'not_answered',image:''};
     if(testMode==='pencil'){const c=$('engPad');if(c){item.filled=!canvasBlank(c);item.image=item.filled?c.toDataURL('image/png'):'';}}
@@ -201,15 +239,15 @@
     if(!testStarted||testDone||!currentUser)return;
     captureEnglishAnswer();
     const payload={version:1,userId:currentUser.id,userName:currentUser.name,startedAt:testBegin,expiresAt:testBegin+testLeft*1000,mode:testMode,testSet,testIndex,testSubmission,savedAt:Date.now()};
-    try{localStorage.setItem(ACTIVE,JSON.stringify(payload));}catch(e){}
+    try{localStorage.setItem(activeKey(),JSON.stringify(payload));}catch(e){}
   }
   function restoreActive(){
-    if(!currentUser)return;let raw=null;try{raw=localStorage.getItem(ACTIVE)}catch(e){}if(!raw)return;let s;try{s=JSON.parse(raw)}catch(e){localStorage.removeItem(ACTIVE);return;}if(s.userId!==currentUser.id||!Array.isArray(s.testSet)||!s.testSet.length)return;
-    if(Number(s.expiresAt)<=Date.now()){localStorage.removeItem(ACTIVE);return;}
+    if(!currentUser)return;let raw=null;try{raw=localStorage.getItem(activeKey())}catch(e){}if(!raw)return;let s;try{s=JSON.parse(raw)}catch(e){localStorage.removeItem(activeKey());return;}if(s.userId!==currentUser.id||!Array.isArray(s.testSet)||!s.testSet.length)return;
+    if(Number(s.expiresAt)<=Date.now()){localStorage.removeItem(activeKey());return;}
     testMode=s.mode||'pencil';testSet=s.testSet;testIndex=Number(s.testIndex||0);testSubmission=s.testSubmission||null;testStarted=true;testDone=false;testBegin=Number(s.startedAt||Date.now());testLeft=Math.max(0,Math.ceil((Number(s.expiresAt)-Date.now())/1000));renderTestQuestion();startEnglishTimer();
   }
   async function submitEnglishTest(auto){
-    if(testDone)return;captureEnglishAnswer();testDone=true;testStarted=false;clearInterval(testTimer);testTimer=null;localStorage.removeItem(ACTIVE);
+    if(testDone)return;captureEnglishAnswer();testDone=true;testStarted=false;clearInterval(testTimer);testTimer=null;localStorage.removeItem(activeKey());
     for(let i=0;i<testSet.length;i++){if(!testSubmission.answers.find(a=>a.i===i)){const q=testSet[i];testSubmission.answers.push({i,rule:q.r,problem:q.p,ans:q.a,ocr:'',filled:false,status:'not_answered',image:''});}}
     testSubmission.total=testSet.length;testSubmission.elapsed=Math.max(0,Math.round((Date.now()-testBegin)/1000));testSubmission.autoSubmitted=!!auto;testSubmission.submitted_at=new Date().toISOString();
     try{await KMT.submit(testSubmission);testSubmission.cloudSaved=true;}catch(e){console.error('English cloud submit',e);alert('English test could not be submitted to the cloud. Please sign in again and retry.');}
@@ -217,7 +255,7 @@
   }
   function renderTestResult(){
     const total=testSubmission?.total||testSet.length;const filled=(testSubmission?.answers||[]).filter(a=>a.filled).length;
-    $('englishTest').innerHTML='<div class="eng-card"><h3>✓ English Test Submitted</h3><div class="eng-stat-grid"><div class="eng-stat"><b>'+filled+'/'+total+'</b>Answered</div><div class="eng-stat"><b>Pending</b>Review</div><div class="eng-stat"><b>'+Math.round((testSubmission?.elapsed||0)/60)+':'+String((testSubmission?.elapsed||0)%60).padStart(2,'0')+'</b>Time</div><div class="eng-stat"><b>—</b>Score</div></div><p class="eng-feedback">Your test is waiting for <b>Parent/Admin Review</b>. After review, your progress will update.</p><button class="btn primary" id="englishRetest">Take Another Test</button><button class="btn secondary" id="englishReviewBtn">👨‍👩‍👧 Parent Portal Review</button></div>';
+    $('englishTest').innerHTML='<div class="eng-card"><h3>✓ '+(engCategory==='phonograms'?'Phonogram':'Spelling')+' Test Submitted</h3><div class="eng-stat-grid"><div class="eng-stat"><b>'+filled+'/'+total+'</b>Answered</div><div class="eng-stat"><b>Pending</b>Review</div><div class="eng-stat"><b>'+Math.round((testSubmission?.elapsed||0)/60)+':'+String((testSubmission?.elapsed||0)%60).padStart(2,'0')+'</b>Time</div><div class="eng-stat"><b>—</b>Score</div></div><p class="eng-feedback">Your test is waiting for <b>Parent/Admin Review</b>. After review, your progress will update.</p><button class="btn primary" id="englishRetest">Take Another Test</button><button class="btn secondary" id="englishReviewBtn">👨‍👩‍👧 Parent Portal Review</button></div>';
     $('englishRetest').onclick=()=>{testSubmission=null;renderTestStart();};$('englishReviewBtn').onclick=()=>openParentReview();
   }
   function hasSubmittedReview(){return !!testSubmission||false;}
@@ -235,14 +273,23 @@
       const pending=mine.filter(r=>['pending','under_review'].includes(String(r.status||'').toLowerCase()));
       cloudHtml=(pending.length?'<div class="eng-feedback">⏳ '+pending.length+' English test'+(pending.length===1?'':'s')+' waiting for Parent/Admin Review.</div>':'')+(approved.length?'<h4>Cloud-reviewed tests</h4>'+approved.slice(0,10).map(r=>{const sub=r.submission||{},ans=Array.isArray(sub.answers)?sub.answers:[];const cc=ans.filter(x=>x.status==='correct').length,ww=ans.filter(x=>x.status==='wrong').length,nn=ans.filter(x=>x.status==='not_answered').length;return '<div class="eng-review-line"><b>'+esc(new Date(r.submitted_at).toLocaleDateString())+'</b> — '+cc+'/'+ans.length+' correct ('+pct(cc,ans.length)+'%) • ✗ '+ww+' • — '+nn+'</div>';}).join(''):'<div class="muted">No cloud-reviewed English tests yet.</div>');
     }catch(e){cloudHtml='<div class="muted">Cloud progress unavailable right now.</div>';}
-    $('englishProgress').innerHTML='<div class="eng-card"><h3>📊 English / Spalding Progress</h3><div class="eng-stat-grid"><div class="eng-stat"><b>'+a+'</b>Practice Attempts</div><div class="eng-stat"><b>'+pct(c,a)+'%</b>Practice Accuracy</div><div class="eng-stat"><b>'+state.tests+'</b>Tests</div><div class="eng-stat"><b>'+pct(state.testCorrect,state.tests*10)+'%</b>Practice Test Accuracy</div></div><div style="margin-top:14px">'+cloudHtml+'</div><h4>Rules needing review</h4>'+(review.length?review.map(x=>'<div class="eng-review-line"><b>Rule '+x.rule+'</b> — '+esc(x.answer)+'</div>').join(''):'<div class="muted">No local review items yet.</div>')+'</div>';
+    $('englishProgress').innerHTML='<div class="eng-card"><h3>📊 '+(engCategory==='phonograms'?'Phonogram':'Spelling')+' Progress</h3><div class="eng-stat-grid"><div class="eng-stat"><b>'+a+'</b>Practice Attempts</div><div class="eng-stat"><b>'+pct(c,a)+'%</b>Practice Accuracy</div><div class="eng-stat"><b>'+state.tests+'</b>Tests</div><div class="eng-stat"><b>'+pct(state.testCorrect,state.tests*10)+'%</b>Practice Test Accuracy</div></div><div style="margin-top:14px">'+cloudHtml+'</div><h4>Rules needing review</h4>'+(review.length?review.map(x=>'<div class="eng-review-line"><b>Rule '+x.rule+'</b> — '+esc(x.answer)+'</div>').join(''):'<div class="muted">No local review items yet.</div>')+'</div>';
+  }
+  function setEnglishCategory(cat){
+    if(testStarted && engCategory!==cat){if(!confirm('Switching categories will end the active test. Continue?'))return;clearInterval(testTimer);testStarted=false;testDone=true;localStorage.removeItem(activeKey());}
+    engCategory=cat;
+    $('engSpellingBtn').className=cat==='spelling'?'btn primary':'btn secondary';
+    $('engPhonogramsBtn').className=cat==='phonograms'?'btn primary':'btn secondary';
+    $('englishCategoryLabel').textContent=cat==='spelling'?'Spelling: Rules • Practice • Dictation • Test • Progress':'Phonograms: Learn • Practice • Dictation • Test • Progress';
+    renderLearn();renderPractice();renderDictation();renderTestStart();renderProgress();
   }
   function wire(){
+    $('engSpellingBtn').onclick=()=>setEnglishCategory('spelling');$('engPhonogramsBtn').onclick=()=>setEnglishCategory('phonograms');
     $('engLearnBtn').onclick=()=>setMode('englishLearn');$('engPracticeBtn').onclick=()=>setMode('englishPractice');$('engDictationBtn').onclick=()=>setMode('englishDictation');$('engTestBtn').onclick=()=>setMode('englishTest');$('engProgressBtn').onclick=()=>setMode('englishProgress');
     renderLearn();
     window.KMT_SHOW_ENGLISH=()=>{setMode('englishLearn');$('englishPanel').classList.remove('hidden');};
     window.KMT_HIDE_ENGLISH=()=>{$('englishPanel').classList.add('hidden');};
-    window.KMT_END_ENGLISH_TEST=()=>{if(testStarted){clearInterval(testTimer);testStarted=false;testDone=true;localStorage.removeItem(ACTIVE);}};
+    window.KMT_END_ENGLISH_TEST=()=>{if(testStarted){clearInterval(testTimer);testStarted=false;testDone=true;localStorage.removeItem(activeKey());}};
     setTimeout(restoreActive,0);
   }
   wire();
