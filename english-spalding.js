@@ -322,7 +322,7 @@
   window.addEventListener('pagehide',()=>persistActive());window.addEventListener('beforeunload',()=>persistActive());
 })();
 
-/* ===== Production 3.7.0 — Phonogram Sound → Symbol ===== */
+/* ===== Production 3.8.0 — Phonogram Sound → Symbol ===== */
 (function(){
   const K=window.KMT||(window.KMT={});
   const sounds=[
@@ -369,7 +369,7 @@
     instructions:"Hear only the sound. Write the phonogram symbol with Apple Pencil. Submit the handwriting for review."};
 })();
 
-/* Production 3.7.0 — Unified Phonogram Sound-Cue Practice/Test */
+/* Production 3.8.0 — Unified Phonogram Sound-Cue Practice/Test */
 (function(){
 "use strict";
 window.KMT=window.KMT||{};
@@ -383,4 +383,21 @@ function saveWritten(handwritingImage,ocrText){const x=current();if(!x)return nu
 function next(){if(S.i<S.items.length-1){S.i++;return current()}return null}
 function finish(){return{answers:S.answers.slice(),total:S.items.length,mode:S.mode}}
 KMT.PhonogramSoundCue={start,current,hear,saveWritten,next,finish,state:S,rule:"Sound only → student writes phonogram symbol. No symbol is spoken or shown in the prompt."};
+})();
+
+
+/* Production 3.8.0: Phonogram Dictation Range Control — Sound -> Symbol */
+(function(){
+ const K=window.KMT||(window.KMT={});
+ const PG=["a","c","d","f","g","o","s","qu","b","e","h","i","j","k","l","m","n","p","r","t","u","v","w","x","y","z","sh","ee","th","ow","ou","oo","ch","ar","ay","ai","oy","oi","er","ir","ur","wor","ear","ng","ea","aw","au","or","ck","wh","ed","ew","ui","oa","gu","ph","ough","oe","ey","igh","kn","gn","wr","ie","dge","ei","eigh","ti","si","ci"];
+ const SOUND={a:"short a sound",c:"k sound",d:"d sound",f:"f sound",g:"g sound",o:"short o sound",s:"s sound",qu:"kw sound",b:"b sound",e:"short e sound",h:"h sound",i:"short i sound",j:"j sound",k:"k sound",l:"l sound",m:"m sound",n:"n sound",p:"p sound",r:"r sound",t:"t sound",u:"short u sound",v:"v sound",w:"w sound",x:"ks sound",y:"y sound",z:"z sound",sh:"sh sound",ee:"long e sound",th:"th sound",ow:"ow sound",ou:"ow sound",oo:"oo sound",ch:"ch sound",ar:"ar sound",ay:"long a sound",ai:"long a sound",oy:"oy sound",oi:"oy sound",er:"er sound",ir:"er sound",ur:"er sound",wor:"wur sound",ear:"ear sound",ng:"ng sound",ea:"long e sound",aw:"aw sound",au:"aw sound",or:"or sound",ck:"k sound",wh:"wh sound",ed:"ed sound",ew:"long u sound",ui:"oo sound",oa:"long o sound",gu:"g sound",ph:"f sound",ough:"ough sound",oe:"long o sound",ey:"long e sound",igh:"long i sound",kn:"n sound",gn:"n sound",wr:"r sound",ie:"long i sound",dge:"j sound",ei:"long e sound",eigh:"long a sound",ti:"sh sound",si:"zh sound",ci:"sh sound"};
+ const CUE={sh:"Think of the sound in ship.",ee:"Think of the sound in see.",th:"Listen for the tongue-between-the-teeth sound.",ch:"Think of the sound in chair.",ar:"Think of the sound in car.",ay:"Think of the sound at the end of play.",ai:"Think of the sound in rain.",oy:"Think of the sound in boy.",oi:"Think of the sound in coin.",igh:"Think of the long-i sound in night.",kn:"Think of the beginning sound in knee.",gn:"Think of the beginning sound in gnaw.",wr:"Think of the beginning sound in write.",dge:"Think of the ending sound in badge."};
+ const state={start:1,end:26,count:10,items:[],index:0,answers:[],started:false};
+ function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+ function begin(start,end,count){start=Math.max(1,Math.min(70,+start||1));end=Math.max(start,Math.min(70,+end||start));count=Math.max(1,Math.min(30,+count||10));state.start=start;state.end=end;state.count=count;state.items=shuffle(PG.slice(start-1,end)).slice(0,Math.min(count,end-start+1));state.index=0;state.answers=[];state.started=true;return state}
+ function current(){return state.items[state.index]||null}
+ function hear(){let x=current();if(!x||!('speechSynthesis'in window))return;speechSynthesis.cancel();let u=new SpeechSynthesisUtterance(SOUND[x]||'listen carefully to the sound');u.rate=.58;speechSynthesis.speak(u)}
+ function cue(){let x=current();return x?(CUE[x]||'Listen carefully to the sound and think of the phonogram that represents it.') : ''}
+ function record(written,image){let x=current();if(!x)return null;let w=String(written||'').trim().toLowerCase().replace(/\s+/g,'');let r={range:'Phonograms '+state.start+'–'+state.end,expectedSymbol:x,written:w,image:image||null,ocrMatch:w?w===x:null,status:'pending_review'};state.answers.push(r);return r}
+ K.PhonogramDictation={begin,current,hear,cue,record,state,phonograms:PG,inRange:function(){let x=current();return !!x&&state.items.indexOf(x)>=0}};
 })();
