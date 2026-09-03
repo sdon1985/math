@@ -322,7 +322,7 @@
   window.addEventListener('pagehide',()=>persistActive());window.addEventListener('beforeunload',()=>persistActive());
 })();
 
-/* ===== Production 3.6.0 — Phonogram Sound → Symbol ===== */
+/* ===== Production 3.7.0 — Phonogram Sound → Symbol ===== */
 (function(){
   const K=window.KMT||(window.KMT={});
   const sounds=[
@@ -367,4 +367,20 @@
   function next(){if(state.index<state.items.length-1){state.index++;return current()}return null}
   KMT.PhonogramSoundToSymbol={start,current,hear,record,next,state,
     instructions:"Hear only the sound. Write the phonogram symbol with Apple Pencil. Submit the handwriting for review."};
+})();
+
+/* Production 3.7.0 — Unified Phonogram Sound-Cue Practice/Test */
+(function(){
+"use strict";
+window.KMT=window.KMT||{};
+const sounds=[["a","ă"],["c","k"],["d","d"],["f","f"],["g","g"],["o","ŏ"],["s","s"],["qu","kw"],["b","b"],["e","ĕ"],["h","h"],["i","ĭ"],["j","j"],["k","k"],["l","l"],["m","m"],["n","n"],["p","p"],["r","r"],["t","t"],["u","ŭ"],["v","v"],["w","w"],["x","ks"],["y","y"],["z","z"],["sh","sh"],["ee","ē"],["th","th"],["ow","ow"],["ou","ou"],["oo","oo"],["ch","ch"],["ar","ar"],["ay","ā"],["ai","ā"],["oy","oy"],["oi","oi"],["er","er"],["ir","er"],["ur","er"],["wor","wər"],["ear","ear"],["ng","ng"],["ea","ē"],["aw","aw"],["au","aw"],["or","or"],["ck","k"],["wh","wh"],["ed","ed"],["ew","ū"],["ui","oo"],["oa","ō"],["gu","g"],["ph","f"],["ough","varies"],["oe","ō"],["ey","ē"],["igh","ī"],["kn","n"],["gn","n"],["wr","r"],["ie","ī"],["dge","j"],["ei","ē"],["eigh","ā"],["ti","sh"],["si","zh"],["ci","sh"]];
+const S={items:[],i:0,answers:[],mode:"practice"};
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function start(start=1,end=70,count=10,mode="practice"){let pool=sounds.slice(Math.max(0,start-1),Math.min(70,end));S.items=shuffle(pool).slice(0,Math.min(count,pool.length)).map(x=>({symbol:x[0],sound:x[1]}));S.i=0;S.answers=[];S.mode=mode;return S}
+function hear(){const x=S.items[S.i];if(!x||!("speechSynthesis"in window))return;speechSynthesis.cancel();let text=x.sound==="varies"?"the sound varies by word":x.sound;let u=new SpeechSynthesisUtterance(text);u.rate=.55;u.pitch=1;u.volume=1;speechSynthesis.speak(u)}
+function current(){return S.items[S.i]||null}
+function saveWritten(handwritingImage,ocrText){const x=current();if(!x)return null;const normalized=String(ocrText||"").trim().toLowerCase().replace(/\s+/g,"");const expected=x.symbol.toLowerCase();const a={questionIndex:S.i+1,expectedSymbol:expected,soundCue:x.sound,handwritingImage:handwritingImage||null,ocrText:normalized,ocrMatch:normalized?normalized===expected:null,status:"pending_review"};S.answers.push(a);return a}
+function next(){if(S.i<S.items.length-1){S.i++;return current()}return null}
+function finish(){return{answers:S.answers.slice(),total:S.items.length,mode:S.mode}}
+KMT.PhonogramSoundCue={start,current,hear,saveWritten,next,finish,state:S,rule:"Sound only → student writes phonogram symbol. No symbol is spoken or shown in the prompt."};
 })();

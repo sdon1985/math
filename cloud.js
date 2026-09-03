@@ -49,7 +49,7 @@
     }
 
     if(!map[0]||(expectedId&&map[0].app_user_id!==expectedId)){
-      await logout();throw Error('Security check failed: Auth account is not mapped correctly. Please use Production 3.3.3.');
+      await logout();throw Error('Security check failed: Auth account is not mapped correctly. Please use Production 3.7.0.');
     }
     const p=await api('/rest/v1/kids_users?select=id,display_name,role&id=eq.'+encodeURIComponent(map[0].app_user_id));
     if(!p[0])throw Error('Kids Math Test user profile was not found.');
@@ -87,7 +87,7 @@
       await rpc('register_parent',{p_auth_user_id:d.user.id,p_display_name:displayName,p_email:d.user.email||email});
       p=await api('/rest/v1/parent_users?select=auth_user_id,display_name,email&auth_user_id=eq.'+encodeURIComponent(d.user.id));
     }
-    if(!p[0]){await logout();throw Error('Parent profile could not be created. Run the Production 3.3.3 parent SQL migration in Supabase.');}
+    if(!p[0]){await logout();throw Error('Parent profile could not be created. Run the Production 3.7.0 parent SQL migration in Supabase.');}
     S.user={authId:d.user.id,id:d.user.id,name:p[0].display_name,role:'parent',email:p[0].email||email};save();return S.user;
   }
 
@@ -149,7 +149,7 @@
       const name=au.user_metadata?.display_name||au.user_metadata?.name||'Parent';
       await rpc('register_parent',{p_auth_user_id:au.id,p_display_name:name,p_email:au.email||''});
       const again=await api('/rest/v1/parent_users?select=auth_user_id,display_name,email&auth_user_id=eq.'+encodeURIComponent(au.id));
-      if(!again[0])throw Error('Parent profile is not available. Run the Production 3.3.3 database migration.');
+      if(!again[0])throw Error('Parent profile is not available. Run the Production 3.7.0 database migration.');
       S.user={authId:au.id,id:au.id,name:again[0].display_name,role:'parent',email:again[0].email};save();
       return S.user;
     }
