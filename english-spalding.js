@@ -76,9 +76,48 @@
   PHONOGRAMS.forEach(p=>{PHONOGRAM_WORDS[p[0]]=p[3].split(/\s*[•,]\s*/).filter(Boolean);});
   [[1,PG_WORDS[0]],[8,PG_WORDS[1]],[27,PG_WORDS[2]],[36,PG_WORDS[3]],[37,PG_WORDS[4]],[38,PG_WORDS[5]],[60,PG_WORDS[6]],[63,PG_WORDS[7]],[68,PG_WORDS[9]],[70,PG_WORDS[8]]].forEach(([id,w])=>PHONOGRAM_WORDS[id]=w);
   const pgSession={mode:'',items:[],index:0};
-  const pgShuffle=a=>{const x=a.slice();for(let i=x.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[x[i],x[j]]=[x[j],x[i]];}return x;};
-  const pgStart=(mode,count)=>{pgSession.mode=mode;pgSession.index=0;const ids=pgShuffle(PHONOGRAMS.map(p=>p[0]));pgSession.items=pgShuffle(ids.flatMap(id=>pgShuffle(PHONOGRAM_WORDS[id]||[]).slice(0,3).map(word=>({id,word})))).slice(0,count);};
+  const pgShuffle=a=>{const x=a.slice();for(let i=x.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[x[j],x[i]]=[x[i],x[j]];}return x;};
+  const phonogramRangeHtml=(prefix,countDefault=12)=>'<div class="phon-range" style="margin-bottom:10px"><b>Choose phonograms:</b><div class="phon-range-buttons">'+PHONOGRAM_PRESETS.map(x=>'<button type="button" class="btn '+(x[0]===phonRangeStart&&x[1]===phonRangeEnd?'primary':'secondary')+' '+prefix+'-range-btn" data-range="'+x[0]+'-'+x[1]+'">'+esc(x[2])+'</button>').join('')+'<label class="phon-custom">Custom <input id="'+prefix+'Start" type="number" min="1" max="70" value="'+phonRangeStart+'"><span>to</span><input id="'+prefix+'End" type="number" min="1" max="70" value="'+phonRangeEnd+'"><button type="button" class="btn secondary" id="'+prefix+'Apply">Apply</button></label><label style="margin-left:6px">Questions <select id="'+prefix+'Count"><option value="10" '+(countDefault===10?'selected':'')+'>10</option><option value="15" '+(countDefault===15?'selected':'')+'>15</option><option value="20" '+(countDefault===20?'selected':'')+'>20</option><option value="25" '+(countDefault===25?'selected':'')+'>25</option></select></label></div><div class="phon-summary">Hard boundary: only phonograms in this range will be used.</div></div>';
+  function bindPhonRange(prefix,onChange){
+    document.querySelectorAll('.'+prefix+'-range-btn').forEach(b=>b.onclick=()=>{const [a,z]=b.dataset.range.split('-').map(Number);onChange(a,z);});
+    const apply=$(''+prefix+'Apply'); if(apply) apply.onclick=()=>onChange(Number($(prefix+'Start').value)||1,Number($(prefix+'End').value)||70);
+  }
+  function setActivityPhonRange(a,b){phonRangeStart=Math.max(1,Math.min(70,Number(a)||1));phonRangeEnd=Math.max(phonRangeStart,Math.min(70,Number(b)||70));phonIndex=0;practiceIndex=0;dictIndex=0;pgSession.mode='';pgSession.items=[];pgSession.index=0;}
+  const pgStart=(mode,count)=>{const ids=pgShuffle(selectedPhonograms().map(p=>p[0]));pgSession.mode=mode;pgSession.index=0;pgSession.items=ids.slice(0,Math.min(count,ids.length)).map(id=>({id,variant:phonogramAudioVariant(PHONOGRAMS[id-1][1])}));};
   const pgCurrent=()=>pgSession.items[pgSession.index];
+
+  /* Browser TTS must never be used for isolated phonograms. It reads strings such as "th" as letters/words. */
+  const PHONEME_AUDIO={
+    a:[{kind:'vowel',f:800}],c:[{kind:'k'},{kind:'s'}],d:[{kind:'d'}],f:[{kind:'f'}],g:[{kind:'g'},{kind:'j'}],o:[{kind:'vowel',f:600}],s:[{kind:'s'},{kind:'z'}],qu:[{kind:'kw'}],b:[{kind:'b'}],e:[{kind:'vowel',f:650}],h:[{kind:'h'}],i:[{kind:'vowel',f:520}],j:[{kind:'j'}],k:[{kind:'k'}],l:[{kind:'l'}],m:[{kind:'m'}],n:[{kind:'n'}],p:[{kind:'p'}],r:[{kind:'r'}],t:[{kind:'t'}],u:[{kind:'vowel',f:500}],v:[{kind:'v'}],w:[{kind:'w'}],x:[{kind:'ks'}],y:[{kind:'y'}],z:[{kind:'z'}],sh:[{kind:'sh'}],ee:[{kind:'vowel',f:330}],th:[{kind:'th',voiced:false},{kind:'th',voiced:true}],ow:[{kind:'ow'}],ou:[{kind:'ow'},{kind:'vowel',f:330}],oo:[{kind:'vowel',f:300}],ch:[{kind:'ch'}],ar:[{kind:'vowel',f:520}],ay:[{kind:'vowel',f:800}],ai:[{kind:'vowel',f:800}],oy:[{kind:'oy'}],oi:[{kind:'oy'}],er:[{kind:'r',f:300}],ir:[{kind:'r',f:300}],ur:[{kind:'r',f:300}],wor:[{kind:'r',f:300}],ear:[{kind:'vowel',f:430}],ng:[{kind:'ng'}],ea:[{kind:'vowel',f:330}],aw:[{kind:'vowel',f:600}],au:[{kind:'vowel',f:600}],or:[{kind:'vowel',f:500}],ck:[{kind:'k'}],wh:[{kind:'wh'}],ed:[{kind:'d'}],ew:[{kind:'vowel',f:330}],ui:[{kind:'vowel',f:300}],oa:[{kind:'vowel',f:450}],gu:[{kind:'g'}],ph:[{kind:'f'}],ough:[{kind:'vowel',f:600}],oe:[{kind:'vowel',f:450}],ey:[{kind:'vowel',f:330}],igh:[{kind:'vowel',f:400}],kn:[{kind:'n'}],gn:[{kind:'n'}],wr:[{kind:'r'}],ie:[{kind:'vowel',f:400}],dge:[{kind:'j'}],ei:[{kind:'vowel',f:330}],eigh:[{kind:'vowel',f:800}],ti:[{kind:'sh'}],si:[{kind:'sh'},{kind:'zh'}],ci:[{kind:'sh'}]
+  };
+  function phonogramAudioVariant(symbol){const a=PHONEME_AUDIO[symbol]||[{kind:'vowel',f:500}];return a[Math.floor(Math.random()*a.length)];}
+  let phonAudioCtx=null;
+  function audioCtx(){if(!phonAudioCtx)phonAudioCtx=new (window.AudioContext||window.webkitAudioContext)();if(phonAudioCtx.state==='suspended')phonAudioCtx.resume();return phonAudioCtx;}
+  function noiseNode(ctx,dur,filterType,freq,gainValue,start){const n=ctx.createBufferSource(),buf=ctx.createBuffer(1,Math.ceil(ctx.sampleRate*dur),ctx.sampleRate),data=buf.getChannelData(0);for(let i=0;i<data.length;i++)data[i]=Math.random()*2-1;n.buffer=buf;const f=ctx.createBiquadFilter();f.type=filterType;f.frequency.value=freq;const g=ctx.createGain();g.gain.setValueAtTime(0,start);g.gain.linearRampToValueAtTime(gainValue,start+.025);g.gain.exponentialRampToValueAtTime(.0001,start+dur);n.connect(f).connect(g).connect(ctx.destination);n.start(start);n.stop(start+dur+.02);}
+  function toneNode(ctx,freq,dur,gainValue,start,type='sine'){const o=ctx.createOscillator(),g=ctx.createGain();o.type=type;o.frequency.value=freq;g.gain.setValueAtTime(.0001,start);g.gain.linearRampToValueAtTime(gainValue,start+.03);g.gain.exponentialRampToValueAtTime(.0001,start+dur);o.connect(g).connect(ctx.destination);o.start(start);o.stop(start+dur+.02);}
+  function playPhoneme(spec){try{const ctx=audioCtx(),now=ctx.currentTime+.03,k=spec.kind;
+    if(k==='th'){noiseNode(ctx,.48,'bandpass',4800,.22,now);if(spec.voiced)toneNode(ctx,135,.48,.045,now,'sawtooth');return;}
+    if(k==='sh'){noiseNode(ctx,.48,'bandpass',4200,.28,now);return;}
+    if(k==='f'){noiseNode(ctx,.42,'highpass',2500,.22,now);return;}
+    if(k==='h'){noiseNode(ctx,.38,'bandpass',2200,.16,now);return;}
+    if(k==='s'){noiseNode(ctx,.42,'highpass',4300,.28,now);return;}
+    if(k==='z'){noiseNode(ctx,.42,'highpass',3900,.18,now);toneNode(ctx,180,.42,.035,now,'sawtooth');return;}
+    if(k==='v'){noiseNode(ctx,.38,'highpass',3000,.12,now);toneNode(ctx,170,.38,.035,now,'sawtooth');return;}
+    if(k==='wh'){noiseNode(ctx,.28,'bandpass',2600,.16,now);return;}
+    if(k==='ch'){noiseNode(ctx,.09,'highpass',2800,.30,now);noiseNode(ctx,.36,'bandpass',4200,.24,now+.06);return;}
+    if(k==='j'){noiseNode(ctx,.08,'highpass',2400,.24,now);toneNode(ctx,170,.30,.035,now+.05,'sawtooth');return;}
+    if(k==='ks'){noiseNode(ctx,.12,'highpass',2600,.22,now);noiseNode(ctx,.28,'highpass',4300,.18,now+.09);return;}
+    if(k==='k'||k==='t'||k==='p'){noiseNode(ctx,.07,'highpass',2600,.34,now);return;}
+    if(k==='b'||k==='d'||k==='g'){noiseNode(ctx,.06,'bandpass',1800,.22,now);toneNode(ctx,k==='b'?120:k==='d'?150:135,.32,.04,now+.04,'sawtooth');return;}
+    if(k==='m'||k==='n'||k==='ng'||k==='l'||k==='r'||k==='w'||k==='y'){toneNode(ctx,spec.f||((k==='m')?150:(k==='n'||k==='ng')?180:(k==='l')?210:(k==='r')?170:(k==='w')?220:260),.42,.045,now,'sawtooth');return;}
+    if(k==='kw'){noiseNode(ctx,.06,'highpass',2400,.24,now);toneNode(ctx,250,.32,.035,now+.05,'sawtooth');return;}
+    if(k==='ow'||k==='oy'){toneNode(ctx,k==='ow'?430:500,.32,.045,now);toneNode(ctx,k==='ow'?650:700,.26,.035,now+.22,'sine');return;}
+    if(k==='zh'){noiseNode(ctx,.4,'bandpass',3000,.16,now);toneNode(ctx,170,.4,.035,now,'sawtooth');return;}
+    if(k==='vowel'){toneNode(ctx,spec.f||500,.52,.05,now,'sawtooth');toneNode(ctx,(spec.f||500)*2.7,.46,.018,now,'sine');toneNode(ctx,(spec.f||500)*4.2,.38,.01,now,'sine');return;}
+    noiseNode(ctx,.35,'bandpass',1800,.14,now);
+  }catch(e){console.warn('phoneme audio unavailable',e)}}
+  function hearPhonogram(item){if(!item)return;playPhoneme(item.variant||phonogramAudioVariant(item.id));}
+  function phonogramCue(item){const s=item?.variant?.kind;if(s==='th')return item.variant.voiced?'Tongue gently between your teeth, with your voice turned on.':'Tongue gently between your teeth, with air and no voice.';if(s==='sh')return 'Make a quiet, long air sound.';if(s==='ch')return 'Start with a quick stop, then a quiet air sound.';return 'Listen carefully to the sound. Do not say the phonogram name.';}
 
   const STORE='kmtEnglishSpaldingProgress';
   const ACTIVE='kmtEnglishActiveSession';
@@ -102,14 +141,7 @@
   }
   let phonRangeStart=1,phonRangeEnd=26,phonIndex=0,phonTool='write';
   function selectedPhonograms(){return PHONOGRAMS.filter(p=>p[0]>=phonRangeStart&&p[0]<=phonRangeEnd);}
-  function phonogramSpeak(p){
-    try{
-      if(!('speechSynthesis' in window))return;
-      speechSynthesis.cancel();
-      const u=new SpeechSynthesisUtterance(p[1]+'. Sounds: '+p[2]+'.');
-      u.rate=.72;speechSynthesis.speak(u);
-    }catch(e){}
-  }
+  function phonogramSpeak(p){ if(!p)return; hearPhonogram({id:p[0],symbol:p[1],variant:phonogramAudioVariant(p[1])}); }
   function renderPhonogramTrainer(){
     const list=selectedPhonograms();
     if(phonIndex>=list.length)phonIndex=0;
@@ -151,14 +183,14 @@
   }
   function renderPractice(){
     if(engCategory==='phonograms'){
-      if(pgSession.mode!=='practice'||!pgSession.items.length||practiceIndex===0||practiceIndex>=pgSession.items.length){pgStart('practice',12);practiceIndex=0;}
-      const item=pgCurrent(),p=PHONOGRAMS[item.id-1], bank=PHONOGRAM_WORDS[item.id]||[];
-      const choices=pgShuffle([item.word,...pgShuffle(Object.values(PHONOGRAM_WORDS).flat().filter(w=>w!==item.word)).slice(0,4)]);
-      $('englishPractice').innerHTML='<div class="eng-card"><div class="ruleNum">PHONOGRAM PRACTICE — '+(practiceIndex+1)+' OF '+pgSession.items.length+'</div><div class="eng-q">🔊 Listen to the sound, then choose a word that contains the phonogram.</div><button class="btn primary" id="pgHearPractice">🔊 Hear Sound</button><div class="phon-practice-sound"><b>Phonogram:</b> '+esc(p[1])+' &nbsp; <b>Sound:</b> '+esc(p[2])+'</div><div id="engChoices">'+choices.map(x=>'<button class="eng-choice" data-word="'+esc(x)+'">'+esc(x)+'</button>').join('')+'</div><div class="phon-example-bank"><b>Example bank:</b> '+bank.map(esc).join(' • ')+'</div><div id="engFeedback"></div><button class="btn primary" id="engNextPractice">Next →</button></div>';
-      $('pgHearPractice').onclick=()=>speak('Phonogram '+p[1]+'. Sound: '+p[2]+'.');
-      $('engChoices').querySelectorAll('button').forEach(b=>b.onclick=()=>{const good=bank.includes(b.dataset.word);$('engChoices').querySelectorAll('button').forEach(x=>x.disabled=true);state.practice++;if(good){state.correct++;b.classList.add('correct');}else{b.classList.add('wrong');state.review.push({phonogram:item.id,answer:item.word,at:Date.now()});}save();$('engFeedback').innerHTML='<div class="eng-feedback">'+(good?'✅ Correct!':'❌ Choose a word that contains this phonogram.')+'</div>';});
-      $('engNextPractice').onclick=()=>{practiceIndex++;pgSession.index++;if(pgSession.index>=pgSession.items.length){pgStart('practice',12);practiceIndex=0;}renderPractice();};
-      return;
+      const count=12;
+      if(pgSession.mode!=='practice'||!pgSession.items.length||practiceIndex>=pgSession.items.length) { pgStart('practice',count); practiceIndex=0; }
+      const item=pgCurrent(), p=PHONOGRAMS[item.id-1], choices=pgShuffle([item.id,...pgShuffle(selectedPhonograms().filter(x=>x[0]!==item.id).map(x=>x[0])).slice(0,3)]);
+      $('englishPractice').innerHTML='<div class="eng-card">'+phonogramRangeHtml('practice',12)+'<div class="ruleNum">PHONOGRAM PRACTICE — '+(practiceIndex+1)+' OF '+pgSession.items.length+'</div><div class="eng-q">🎧 <b>Listen to the sound. Choose the phonogram symbol that represents it.</b></div><button class="btn primary" id="pgHearPractice">🔊 Hear Sound</button><button class="btn secondary" id="pgCuePractice">💡 Teacher Cue</button><div class="phon-teacher-note">Sound only. The answer symbol is not spoken or shown before you choose.</div><div id="engChoices">'+choices.map(id=>'<button class="eng-choice" data-id="'+id+'">🔤 '+esc(PHONOGRAMS[id-1][1])+'</button>').join('')+'</div><div id="engFeedback"></div><button class="btn primary" id="engNextPractice">Next →</button></div>';
+      bindPhonRange('practice',(a,b)=>{setActivityPhonRange(a,b);renderPractice();});
+      $('pgHearPractice').onclick=()=>hearPhonogram(item);$('pgCuePractice').onclick=()=>speak(phonogramCue(item));
+      $('engChoices').querySelectorAll('button').forEach(b=>b.onclick=()=>{const good=Number(b.dataset.id)===item.id;$('engChoices').querySelectorAll('button').forEach(x=>x.disabled=true);state.practice++;if(good){state.correct++;b.classList.add('correct');}else{b.classList.add('wrong');state.review.push({phonogram:item.id,answer:p[1],at:Date.now()});}save();$('engFeedback').innerHTML='<div class="eng-feedback">'+(good?'✅ Correct!':'❌ Not quite. Review this sound again with the Parent/Admin reviewer.')+'</div>';});
+      $('engNextPractice').onclick=()=>{practiceIndex++;pgSession.index++;if(pgSession.index>=pgSession.items.length){pgStart('practice',count);practiceIndex=0;}renderPractice();};return;
     }
     const q=[
       {r:1,q:'Which spelling is correct?',c:['qeen','queen','kwen'],a:'queen',why:'Rule 1: q is always followed by u.'},
@@ -178,9 +210,10 @@
       {r:28,q:'Which word has -ed saying /t/?',c:['jumped','lived','handed'],a:'jumped',why:'Rule 28: after an unvoiced consonant sound, -ed says /t/.'},
       {r:29,q:'Which spelling follows the double-consonant rule?',c:['litle','little','littel'],a:'little',why:'Rule 29: words are usually divided between double consonants.'}
     ][practiceIndex%16];
-    $('englishPractice').innerHTML='<div class="eng-card"><div class="ruleNum" style="color:var(--brand);font-weight:900">SPALDING RULE '+q.r+'</div><div class="eng-q">'+esc(q.q)+'</div><div id="engChoices">'+q.c.map((x,i)=>'<button class="eng-choice" data-i="'+i+'">'+esc(x)+'</button>').join('')+'</div><div id="engFeedback"></div></div>';
+    $('englishPractice').innerHTML='<div class="eng-card" style="margin-top:12px"><div class="ruleNum" style="color:var(--brand);font-weight:900">SPALDING RULE '+q.r+'</div><div class="eng-q">'+esc(q.q)+'</div><div id="engChoices">'+q.c.map((x,i)=>'<button class="eng-choice" data-i="'+i+'">'+esc(x)+'</button>').join('')+'</div><div id="engFeedback"></div></div>';
     $('engChoices').querySelectorAll('button').forEach((b,i)=>b.onclick=()=>answerPractice(b,q,i));
   }
+
   function answerPractice(btn,q,i){
     $('engChoices').querySelectorAll('button').forEach(b=>b.disabled=true);state.practice++;state.ruleSeen[q.r]=(state.ruleSeen[q.r]||0)+1;
     const good=q.c[i]===q.a;if(good){state.correct++;btn.classList.add('correct');}else{btn.classList.add('wrong');state.review.push({rule:q.r,answer:q.a,at:Date.now()});}
@@ -189,18 +222,22 @@
   function renderDictation(){
     const isPh=engCategory==='phonograms';
     if(isPh){
-      if(pgSession.mode!=='dictation'||!pgSession.items.length||dictIndex===0||dictIndex>=pgSession.items.length){pgStart('dictation',12);dictIndex=0;}
+      const count=Number(sessionStorage.getItem('kmtPhonDictCount')||10);
+      if(pgSession.mode!=='dictation'||!pgSession.items.length||dictIndex>=pgSession.items.length){pgStart('dictation',count);dictIndex=0;}
       const item=pgCurrent(),p=PHONOGRAMS[item.id-1];
-      $('englishDictation').innerHTML='<div class="eng-card"><div class="ruleNum">PHONOGRAM DICTATION — '+(dictIndex+1)+' OF '+pgSession.items.length+'</div><div class="eng-q">🎧 <b>Teacher says the phonogram sound.</b> Write a whole word that contains that sound.</div><button class="btn primary" id="speakDictation">🔊 Hear Teacher Sound</button><div class="phon-teacher-note">Target sound: <b>'+esc(p[2])+'</b><br><span class="muted">Think of a word. Then write the whole word with your Apple Pencil.</span></div><div class="pencil-label">✏️ Pencil Writing — Whole Word</div><div class="eng-writing-wrap"><canvas id="dictPad" class="eng-pad" width="700" height="210"></canvas><div class="eng-pencil-tools"><button class="btn primary" id="dictWriteBtn">🖊️ Write</button><button class="btn secondary" id="dictEraseBtn">🧽 Erase</button><span id="dictModeText" class="muted">Write mode — Apple Pencil</span></div></div><div id="dictFeedback"></div><button class="btn primary" id="dictCheck">✓ Check Writing</button> <button class="btn secondary" id="dictNext">Next Word →</button></div>';
-      $('speakDictation').onclick=()=>speak('Listen. Phonogram '+p[1]+'. Sound: '+p[2]+'. Now write a whole word containing that sound.');setupDictationPad();
-      $('dictCheck').onclick=()=>{const filled=!canvasBlank($('dictPad'));state.practice++;if(filled)state.correct++;else state.review.push({phonogram:item.id,answer:item.word,at:Date.now()});save();$('dictFeedback').innerHTML='<div class="eng-feedback">'+(filled?'✅ Writing recorded for Parent/Admin review.':'⚠️ Please write the whole word first.')+'<br><b>Expected example:</b> '+esc(item.word)+'</div>';};
-      $('dictNext').onclick=()=>{dictIndex++;pgSession.index++;if(pgSession.index>=pgSession.items.length){pgStart('dictation',12);dictIndex=0;}renderDictation();};return;
+      $('englishDictation').innerHTML='<div class="eng-card">'+phonogramRangeHtml('dict',count)+'<div class="ruleNum">PHONOGRAM DICTATION — '+(dictIndex+1)+' OF '+pgSession.items.length+'</div><div class="eng-q">🎧 <b>Hear ONLY the phonogram sound. Write the phonogram symbol.</b></div><button class="btn primary" id="speakDictation">🔊 Hear Sound</button><button class="btn secondary" id="dictCue">💡 Teacher Cue</button><div class="phon-teacher-note">Sound → Symbol. Do not write a whole word. The answer symbol is not shown.</div><div class="pencil-label">✏️ Pencil Writing — Phonogram Symbol</div><div class="eng-writing-wrap"><canvas id="dictPad" class="eng-pad" width="700" height="210"></canvas><div class="eng-pencil-tools"><button class="btn primary" id="dictWriteBtn">🖊️ Write</button><button class="btn secondary" id="dictEraseBtn">🧽 Erase</button><span id="dictModeText" class="muted">Write mode — Apple Pencil</span></div></div><div id="dictFeedback"></div><button class="btn primary" id="dictCheck">✓ Check Writing</button> <button class="btn secondary" id="dictNext">Next →</button></div>';
+      bindPhonRange('dict',(a,b)=>{setActivityPhonRange(a,b);sessionStorage.setItem('kmtPhonDictCount',String(Math.max(1,Math.min(25,Number($('dictCount')?.value)||10))));renderDictation();});
+      const dc=$('dictCount');if(dc)dc.value=String(count);dc?.addEventListener('change',()=>{sessionStorage.setItem('kmtPhonDictCount',dc.value);setActivityPhonRange(phonRangeStart,phonRangeEnd);renderDictation();});
+      $('speakDictation').onclick=()=>hearPhonogram(item);$('dictCue').onclick=()=>speak(phonogramCue(item));setupDictationPad();
+      $('dictCheck').onclick=()=>{const filled=!canvasBlank($('dictPad'));state.practice++;const answer={phonogram:item.id,expected:p[1],at:Date.now(),status:'pending_review'};if(filled)state.review.push(answer);save();$('dictFeedback').innerHTML='<div class="eng-feedback">'+(filled?'⏳ Writing captured. Parent/Admin review will determine whether the phonogram symbol is correct.':'⚠️ Please write the phonogram symbol first.')+'</div>';};
+      $('dictNext').onclick=()=>{dictIndex++;pgSession.index++;if(pgSession.index>=pgSession.items.length){pgStart('dictation',Number(sessionStorage.getItem('kmtPhonDictCount')||10));dictIndex=0;}renderDictation();};return;
     }
     const item=TEST_WORDS[dictIndex%TEST_WORDS.length];
     $('englishDictation').innerHTML='<div class="eng-card"><div class="ruleNum">SPALDING RULE '+item.r+'</div><div class="eng-q">🔊 Listen, then spell the word.</div><button class="btn primary" id="speakDictation">🔊 Hear Word</button><div class="pencil-label">✏️ Pencil Writing</div><div class="eng-writing-wrap"><canvas id="dictPad" class="eng-pad" width="700" height="210"></canvas><div class="eng-pencil-tools"><button class="btn primary" id="dictWriteBtn">🖊️ Write</button><button class="btn secondary" id="dictEraseBtn">🧽 Erase</button><span id="dictModeText" class="muted">Write mode — Apple Pencil</span></div></div><input id="dictInput" class="eng-input" autocapitalize="none" autocomplete="off" spellcheck="false" placeholder="Or type the spelling here"><div id="dictFeedback"></div><button class="btn primary" id="dictCheck">Check</button> <button class="btn secondary" id="dictNext">Next</button></div>';
     $('speakDictation').onclick=()=>speak(item.a);setupDictationPad();
     $('dictCheck').onclick=()=>{const v=$('dictInput').value.trim(),filled=v.length||!canvasBlank($('dictPad')),good=v.toLowerCase()===item.a.toLowerCase();if(filled)state.practice++;if(good)state.correct++;else if(filled)state.review.push({rule:item.r,answer:item.a,at:Date.now()});save();$('dictFeedback').innerHTML='<div class="eng-feedback">'+(good?'✅ Correct!':filled?'❌ Correct spelling: <b>'+esc(item.a)+'</b>':'⚠️ Write or type an answer first.')+'<br>'+esc(item.why)+'</div>';};$('dictNext').onclick=()=>{dictIndex++;renderDictation();};
   }
+
   function setupDictationPad(){
     const c=$('dictPad'),x=c.getContext('2d'),scale=devicePixelRatio||1;x.setTransform(scale,0,0,scale,0,0);x.lineWidth=3;x.lineCap='round';let drawing=false,tool='write';
     const point=e=>{const r=c.getBoundingClientRect();return{x:(e.clientX-r.left)*c.width/r.width/scale,y:(e.clientY-r.top)*c.height/r.height/scale}};
@@ -222,10 +259,14 @@
   }
   function renderPhonogramTestStart(){
     const active=testStarted&&!testDone;if(active){renderTestQuestion();return;}
-    $('englishTest').innerHTML='<div class="eng-card"><h3>🔤 Phonogram Test</h3><p>Test only phonograms 1–70. This is completely separate from the Spelling Test.</p><div class="eng-test-controls"><label>Answer Method <select id="engAnswerMode"><option value="pencil">✏️ Apple Pencil</option><option value="keyboard">⌨️ Keyboard</option></select></label><label>Timer <select id="engMinutes"><option value="4">4 minutes</option><option value="5">5 minutes</option></select></label></div><button class="btn primary" id="startEnglishTest">▶ Start Phonogram Test</button></div>';
+    const count=Number(sessionStorage.getItem('kmtPhonTestCount')||10);
+    $('englishTest').innerHTML='<div class="eng-card"><h3>🔤 Phonogram Test</h3>'+phonogramRangeHtml('test',count)+'<p>Sound → Symbol. The app gives only the sound; the student writes the phonogram symbol. This is completely separate from the Spelling Test.</p><div class="eng-test-controls"><label>Answer Method <select id="engAnswerMode"><option value="pencil">✏️ Apple Pencil</option><option value="keyboard">⌨️ Keyboard</option></select></label><label>Timer <select id="engMinutes"><option value="4">4 minutes</option><option value="5">5 minutes</option></select></label></div><button class="btn primary" id="startEnglishTest">▶ Start Phonogram Test</button></div>';
+    bindPhonRange('test',(a,b)=>{setActivityPhonRange(a,b);renderPhonogramTestStart();});
+    const tc=$('testCount');if(tc)tc.value=String(count);tc?.addEventListener('change',()=>{sessionStorage.setItem('kmtPhonTestCount',tc.value);setActivityPhonRange(phonRangeStart,phonRangeEnd);renderPhonogramTestStart();});
     $('startEnglishTest').onclick=startEnglishTest;
   }
-  function pgMakeItemsForTest(){pgStart('test',10);return pgSession.items.map(item=>{const p=PHONOGRAMS[item.id-1];return {r:item.id,p:'Teacher says the sound '+p[2]+'. Write a whole word containing that sound.',a:item.word,why:'Phonogram '+p[1]+' — '+p[2],phonogram:p[1],phonogramId:item.id};});}
+  function pgMakeItemsForTest(){const count=Number(sessionStorage.getItem('kmtPhonTestCount')||10);pgStart('test',count);return pgSession.items.map(item=>{const p=PHONOGRAMS[item.id-1];return {r:item.id,p:'Listen to the sound. Write the phonogram symbol.',a:p[1],why:'Phonogram '+p[1],phonogram:p[1],phonogramId:item.id,variant:item.variant};});}
+
   function startEnglishTest(){
     if(testStarted)return;testMode=$('engAnswerMode').value;testSet=(engCategory==='phonograms'?pgMakeItemsForTest():[...TEST_WORDS].sort(()=>Math.random()-.5).slice(0,10));testIndex=0;testScore=0;testDone=false;testStarted=true;testBegin=Date.now();testLeft=(+$('engMinutes').value||4)*60;testSubmission=null;renderTestQuestion();persistActive();startEnglishTimer();
   }
@@ -234,13 +275,14 @@
   function renderTestQuestion(){
     if(testIndex>=testSet.length){submitEnglishTest(false);return;}
     const q=testSet[testIndex];
-    $('englishTest').innerHTML='<div class="eng-card"><div class="eng-test-top"><b>Question '+(testIndex+1)+' of '+testSet.length+'</b><span id="engTestTimer" class="timer">'+Math.floor(testLeft/60)+':'+String(testLeft%60).padStart(2,'0')+'</span></div><div class="ruleNum">'+(engCategory==='phonograms'?'PHONOGRAM '+q.r:'SPALDING RULE '+q.r)+'</div><div class="eng-q">'+esc(q.p)+'</div>'+(engCategory==='phonograms'?'<button class="btn primary" id="engHearPhonTest">🔊 Hear Teacher Sound</button><div class="phon-teacher-note">Write a whole word containing the sound. The answer is not shown until review.</div>':'')+(testMode==='pencil'?'<div class="eng-writing-wrap"><canvas id="engPad" class="eng-pad" width="700" height="210"></canvas><div class="eng-pencil-tools"><button class="btn primary" id="engWriteBtn">🖊️ Write</button><button class="btn secondary" id="engEraseBtn">🧽 Erase</button><span id="engModeText" class="muted">Write mode — Apple Pencil</span></div></div>':'<input id="engAnswerInput" class="eng-answer-input" autocapitalize="none" autocomplete="off" spellcheck="false" placeholder="Type your answer">')+'<div class="eng-test-actions"><button class="btn secondary" id="engNextBtn">'+(testIndex===testSet.length-1?'Finish':'Next →')+'</button><button class="btn primary" id="engSubmitBtn">✓ Submit Test</button></div></div>';
+    $('englishTest').innerHTML='<div class="eng-card"><div class="eng-test-top"><b>Question '+(testIndex+1)+' of '+testSet.length+'</b><span id="engTestTimer" class="timer">'+Math.floor(testLeft/60)+':'+String(testLeft%60).padStart(2,'0')+'</span></div><div class="ruleNum">'+(engCategory==='phonograms'?'PHONOGRAM '+q.r:'SPALDING RULE '+q.r)+'</div><div class="eng-q">'+esc(q.p)+'</div>'+(engCategory==='phonograms'?'<button class="btn primary" id="engHearPhonTest">🔊 Hear Sound</button><button class="btn secondary" id="engCuePhonTest">💡 Teacher Cue</button><div class="phon-teacher-note">Sound only → write the phonogram symbol. No phonogram letters are spoken or displayed.</div>':'')+(testMode==='pencil'?'<div class="eng-writing-wrap"><canvas id="engPad" class="eng-pad" width="700" height="210"></canvas><div class="eng-pencil-tools"><button class="btn primary" id="engWriteBtn">🖊️ Write</button><button class="btn secondary" id="engEraseBtn">🧽 Erase</button><span id="engModeText" class="muted">Write mode — Apple Pencil</span></div></div>':'<input id="engAnswerInput" class="eng-answer-input" autocapitalize="none" autocomplete="off" spellcheck="false" placeholder="Type the phonogram symbol">')+'<div class="eng-test-actions"><button class="btn secondary" id="engNextBtn">'+(testIndex===testSet.length-1?'Finish':'Next →')+'</button><button class="btn primary" id="engSubmitBtn">✓ Submit Test</button></div></div>';
     if(testMode==='pencil')setupEnglishPad();else $('engAnswerInput').addEventListener('input',persistActive);
-    if(engCategory==='phonograms' && $('engHearPhonTest')) $('engHearPhonTest').onclick=()=>speak('Listen. Phonogram '+q.phonogram+'. Sound: '+q.why.split(' — ')[1]+'. Now write a whole word containing that sound.');
+    if(engCategory==='phonograms'){$('engHearPhonTest').onclick=()=>playPhoneme(q.variant||phonogramAudioVariant(q.phonogram));$('engCuePhonTest').onclick=()=>speak(phonogramCue(q));}
     $('engNextBtn').onclick=()=>{captureEnglishAnswer();testIndex++;renderTestQuestion();persistActive();};
     $('engSubmitBtn').onclick=()=>{if(confirm('Submit the English test now?'))submitEnglishTest(false);};
     updateEnglishTimer();
   }
+
   function setupEnglishPad(){
     const c=$('engPad'),x=c.getContext('2d'),scale=devicePixelRatio||1;x.setTransform(scale,0,0,scale,0,0);x.lineWidth=3;x.lineCap='round';let drawing=false;
     const point=e=>{const r=c.getBoundingClientRect();return{x:(e.clientX-r.left)*c.width/r.width/scale,y:(e.clientY-r.top)*c.height/r.height/scale}};
@@ -299,7 +341,7 @@
       const pending=mine.filter(r=>['pending','under_review'].includes(String(r.status||'').toLowerCase()));
       cloudHtml=(pending.length?'<div class="eng-feedback">⏳ '+pending.length+' English test'+(pending.length===1?'':'s')+' waiting for Parent/Admin Review.</div>':'')+(approved.length?'<h4>Cloud-reviewed tests</h4>'+approved.slice(0,10).map(r=>{const sub=r.submission||{},ans=Array.isArray(sub.answers)?sub.answers:[];const cc=ans.filter(x=>x.status==='correct').length,ww=ans.filter(x=>x.status==='wrong').length,nn=ans.filter(x=>x.status==='not_answered').length;return '<div class="eng-review-line"><b>'+esc(new Date(r.submitted_at).toLocaleDateString())+'</b> — '+cc+'/'+ans.length+' correct ('+pct(cc,ans.length)+'%) • ✗ '+ww+' • — '+nn+'</div>';}).join(''):'<div class="muted">No cloud-reviewed English tests yet.</div>');
     }catch(e){cloudHtml='<div class="muted">Cloud progress unavailable right now.</div>';}
-    $('englishProgress').innerHTML='<div class="eng-card"><h3>📊 '+(engCategory==='phonograms'?'Phonogram':'Spelling')+' Progress</h3><div class="eng-stat-grid"><div class="eng-stat"><b>'+a+'</b>Practice Attempts</div><div class="eng-stat"><b>'+pct(c,a)+'%</b>Practice Accuracy</div><div class="eng-stat"><b>'+state.tests+'</b>Tests</div><div class="eng-stat"><b>'+pct(state.testCorrect,state.tests*10)+'%</b>Practice Test Accuracy</div></div><div style="margin-top:14px">'+cloudHtml+'</div><h4>Rules needing review</h4>'+(review.length?review.map(x=>'<div class="eng-review-line"><b>Rule '+x.rule+'</b> — '+esc(x.answer)+'</div>').join(''):'<div class="muted">No local review items yet.</div>')+'</div>';
+    $('englishProgress').innerHTML='<div class="eng-card"><h3>📊 '+(engCategory==='phonograms'?'Phonogram':'Spelling')+' Progress</h3><div class="eng-stat-grid"><div class="eng-stat"><b>'+a+'</b>Practice Attempts</div><div class="eng-stat"><b>'+pct(c,a)+'%</b>Practice Accuracy</div><div class="eng-stat"><b>'+state.tests+'</b>Tests</div><div class="eng-stat"><b>'+pct(state.testCorrect,state.tests*10)+'%</b>Practice Test Accuracy</div></div><div style="margin-top:14px">'+cloudHtml+'</div><h4>Items needing review</h4>'+(review.length?review.map(x=>'<div class="eng-review-line"><b>Rule '+x.rule+'</b> — '+esc(x.answer)+'</div>').join(''):'<div class="muted">No local review items yet.</div>')+'</div>';
   }
   function setEnglishCategory(cat){
     if(testStarted && engCategory!==cat){if(!confirm('Switching categories will end the active test. Continue?'))return;clearInterval(testTimer);testStarted=false;testDone=true;localStorage.removeItem(activeKey());}
@@ -322,82 +364,14 @@
   window.addEventListener('pagehide',()=>persistActive());window.addEventListener('beforeunload',()=>persistActive());
 })();
 
-/* ===== Production 3.8.0 — Phonogram Sound → Symbol ===== */
+/* ===== Production 3.9.0 — Phonogram Sound → Symbol compatibility API ===== */
 (function(){
   const K=window.KMT||(window.KMT={});
-  const sounds=[
-    ["a","short a"],["c","/k/ or /s/"],["d","/d/"],["f","/f/"],["g","/g/ or /j/"],
-    ["o","short o"],["s","/s/ or /z/"],["qu","/kw/"],["b","/b/"],["e","short e"],
-    ["h","/h/"],["i","short i"],["j","/j/"],["k","/k/"],["l","/l/"],["m","/m/"],
-    ["n","/n/"],["p","/p/"],["r","/r/"],["t","/t/"],["u","short u"],["v","/v/"],
-    ["w","/w/"],["x","/ks/"],["y","/y/"],["z","/z/"],["sh","/sh/"],["ee","/ē/"],
-    ["th","/th/"],["ow","/ow/ or /ō/"],["ou","/ou/"],["oo","/oo/"],["ch","/ch/"],
-    ["ar","/ar/"],["ay","/ā/"],["ai","/ā/"],["oy","/oy/"],["oi","/oi/"],["er","/er/"],
-    ["ir","/er/"],["ur","/er/"],["wor","/wər/"],["ear","/ear/"],["ng","/ng/"],["ea","/ē/"],
-    ["aw","/aw/"],["au","/aw/"],["or","/or/"],["ck","/k/"],["wh","/wh/"],["ed","/ed/"],
-    ["ew","/ū/"],["ui","/oo/ or /ū/"],["oa","/ō/"],["gu","/g/"],["ph","/f/"],
-    ["ough","varies by word"],["oe","/ō/"],["ey","/ē/ or /ā/"],["igh","/ī/"],
-    ["kn","/n/"],["gn","/n/"],["wr","/r/"],["ie","/ī/ or /ē/"],["dge","/j/"],
-    ["ei","/ē/ or /ā/"],["eigh","/ā/"],["ti","/sh/"],["si","/zh/ or /sh/"],["ci","/sh/"]
-  ];
-  const state={items:[],index:0,answers:[]};
-  function shuffle(a){a=a.slice();for(let i=a.length-1;i;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
-  function start(start=1,end=70,count=10){
-    state.items=shuffle(sounds.slice(start-1,end)).slice(0,count).map(x=>({symbol:x[0],sound:x[1]}));
-    state.index=0;state.answers=[];return state;
-  }
-  function current(){return state.items[state.index]||null}
-  function hear(){
-    const x=current();if(!x||!("speechSynthesis" in window))return;
-    speechSynthesis.cancel();
-    let text=x.sound.replace(/\//g,"");
-    if(x.sound==="short a") text="short a vowel sound";
-    if(x.sound==="short e") text="short e vowel sound";
-    if(x.sound==="short i") text="short i vowel sound";
-    if(x.sound==="short o") text="short o vowel sound";
-    if(x.sound==="short u") text="short u vowel sound";
-    const u=new SpeechSynthesisUtterance(text);u.rate=.55;speechSynthesis.speak(u);
-  }
-  function record(written,image){
-    const x=current();if(!x)return null;
-    const answer=String(written||"").trim().toLowerCase().replace(/\s+/g,"");
-    const r={expected:x.symbol,written:answer,image:image||null,ocrMatch:answer?answer===x.symbol:null,status:"pending_review"};
-    state.answers.push(r);return r;
-  }
-  function next(){if(state.index<state.items.length-1){state.index++;return current()}return null}
-  KMT.PhonogramSoundToSymbol={start,current,hear,record,next,state,
-    instructions:"Hear only the sound. Write the phonogram symbol with Apple Pencil. Submit the handwriting for review."};
-})();
-
-/* Production 3.8.0 — Unified Phonogram Sound-Cue Practice/Test */
-(function(){
-"use strict";
-window.KMT=window.KMT||{};
-const sounds=[["a","ă"],["c","k"],["d","d"],["f","f"],["g","g"],["o","ŏ"],["s","s"],["qu","kw"],["b","b"],["e","ĕ"],["h","h"],["i","ĭ"],["j","j"],["k","k"],["l","l"],["m","m"],["n","n"],["p","p"],["r","r"],["t","t"],["u","ŭ"],["v","v"],["w","w"],["x","ks"],["y","y"],["z","z"],["sh","sh"],["ee","ē"],["th","th"],["ow","ow"],["ou","ou"],["oo","oo"],["ch","ch"],["ar","ar"],["ay","ā"],["ai","ā"],["oy","oy"],["oi","oi"],["er","er"],["ir","er"],["ur","er"],["wor","wər"],["ear","ear"],["ng","ng"],["ea","ē"],["aw","aw"],["au","aw"],["or","or"],["ck","k"],["wh","wh"],["ed","ed"],["ew","ū"],["ui","oo"],["oa","ō"],["gu","g"],["ph","f"],["ough","varies"],["oe","ō"],["ey","ē"],["igh","ī"],["kn","n"],["gn","n"],["wr","r"],["ie","ī"],["dge","j"],["ei","ē"],["eigh","ā"],["ti","sh"],["si","zh"],["ci","sh"]];
-const S={items:[],i:0,answers:[],mode:"practice"};
-function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
-function start(start=1,end=70,count=10,mode="practice"){let pool=sounds.slice(Math.max(0,start-1),Math.min(70,end));S.items=shuffle(pool).slice(0,Math.min(count,pool.length)).map(x=>({symbol:x[0],sound:x[1]}));S.i=0;S.answers=[];S.mode=mode;return S}
-function hear(){const x=S.items[S.i];if(!x||!("speechSynthesis"in window))return;speechSynthesis.cancel();let text=x.sound==="varies"?"the sound varies by word":x.sound;let u=new SpeechSynthesisUtterance(text);u.rate=.55;u.pitch=1;u.volume=1;speechSynthesis.speak(u)}
-function current(){return S.items[S.i]||null}
-function saveWritten(handwritingImage,ocrText){const x=current();if(!x)return null;const normalized=String(ocrText||"").trim().toLowerCase().replace(/\s+/g,"");const expected=x.symbol.toLowerCase();const a={questionIndex:S.i+1,expectedSymbol:expected,soundCue:x.sound,handwritingImage:handwritingImage||null,ocrText:normalized,ocrMatch:normalized?normalized===expected:null,status:"pending_review"};S.answers.push(a);return a}
-function next(){if(S.i<S.items.length-1){S.i++;return current()}return null}
-function finish(){return{answers:S.answers.slice(),total:S.items.length,mode:S.mode}}
-KMT.PhonogramSoundCue={start,current,hear,saveWritten,next,finish,state:S,rule:"Sound only → student writes phonogram symbol. No symbol is spoken or shown in the prompt."};
-})();
-
-
-/* Production 3.8.0: Phonogram Dictation Range Control — Sound -> Symbol */
-(function(){
- const K=window.KMT||(window.KMT={});
- const PG=["a","c","d","f","g","o","s","qu","b","e","h","i","j","k","l","m","n","p","r","t","u","v","w","x","y","z","sh","ee","th","ow","ou","oo","ch","ar","ay","ai","oy","oi","er","ir","ur","wor","ear","ng","ea","aw","au","or","ck","wh","ed","ew","ui","oa","gu","ph","ough","oe","ey","igh","kn","gn","wr","ie","dge","ei","eigh","ti","si","ci"];
- const SOUND={a:"short a sound",c:"k sound",d:"d sound",f:"f sound",g:"g sound",o:"short o sound",s:"s sound",qu:"kw sound",b:"b sound",e:"short e sound",h:"h sound",i:"short i sound",j:"j sound",k:"k sound",l:"l sound",m:"m sound",n:"n sound",p:"p sound",r:"r sound",t:"t sound",u:"short u sound",v:"v sound",w:"w sound",x:"ks sound",y:"y sound",z:"z sound",sh:"sh sound",ee:"long e sound",th:"th sound",ow:"ow sound",ou:"ow sound",oo:"oo sound",ch:"ch sound",ar:"ar sound",ay:"long a sound",ai:"long a sound",oy:"oy sound",oi:"oy sound",er:"er sound",ir:"er sound",ur:"er sound",wor:"wur sound",ear:"ear sound",ng:"ng sound",ea:"long e sound",aw:"aw sound",au:"aw sound",or:"or sound",ck:"k sound",wh:"wh sound",ed:"ed sound",ew:"long u sound",ui:"oo sound",oa:"long o sound",gu:"g sound",ph:"f sound",ough:"ough sound",oe:"long o sound",ey:"long e sound",igh:"long i sound",kn:"n sound",gn:"n sound",wr:"r sound",ie:"long i sound",dge:"j sound",ei:"long e sound",eigh:"long a sound",ti:"sh sound",si:"zh sound",ci:"sh sound"};
- const CUE={sh:"Think of the sound in ship.",ee:"Think of the sound in see.",th:"Listen for the tongue-between-the-teeth sound.",ch:"Think of the sound in chair.",ar:"Think of the sound in car.",ay:"Think of the sound at the end of play.",ai:"Think of the sound in rain.",oy:"Think of the sound in boy.",oi:"Think of the sound in coin.",igh:"Think of the long-i sound in night.",kn:"Think of the beginning sound in knee.",gn:"Think of the beginning sound in gnaw.",wr:"Think of the beginning sound in write.",dge:"Think of the ending sound in badge."};
- const state={start:1,end:26,count:10,items:[],index:0,answers:[],started:false};
- function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
- function begin(start,end,count){start=Math.max(1,Math.min(70,+start||1));end=Math.max(start,Math.min(70,+end||start));count=Math.max(1,Math.min(30,+count||10));state.start=start;state.end=end;state.count=count;state.items=shuffle(PG.slice(start-1,end)).slice(0,Math.min(count,end-start+1));state.index=0;state.answers=[];state.started=true;return state}
- function current(){return state.items[state.index]||null}
- function hear(){let x=current();if(!x||!('speechSynthesis'in window))return;speechSynthesis.cancel();let u=new SpeechSynthesisUtterance(SOUND[x]||'listen carefully to the sound');u.rate=.58;speechSynthesis.speak(u)}
- function cue(){let x=current();return x?(CUE[x]||'Listen carefully to the sound and think of the phonogram that represents it.') : ''}
- function record(written,image){let x=current();if(!x)return null;let w=String(written||'').trim().toLowerCase().replace(/\s+/g,'');let r={range:'Phonograms '+state.start+'–'+state.end,expectedSymbol:x,written:w,image:image||null,ocrMatch:w?w===x:null,status:'pending_review'};state.answers.push(r);return r}
- K.PhonogramDictation={begin,current,hear,cue,record,state,phonograms:PG,inRange:function(){let x=current();return !!x&&state.items.indexOf(x)>=0}};
+  K.PhonogramSoundToSymbol={
+    start:function(start=1,end=70,count=10){return K.PhonogramDictation?.begin(start,end,count,'practice')||null;},
+    current:function(){return K.PhonogramDictation?.current()||null;},
+    hear:function(){const x=K.PhonogramDictation?.current();if(x)window.dispatchEvent(new CustomEvent('kmt-phonogram-hear',{detail:x}));},
+    record:function(written,image){return K.PhonogramDictation?.record(written,image)||null;},
+    next:function(){return K.PhonogramDictation?.next()||null;}
+  };
 })();
