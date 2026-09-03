@@ -59,6 +59,26 @@
     [55,"gu","g","guess • guide"],[56,"ph","f","phone • graph"],[57,"ough","ō, oo, ŭf, ŏf, aw, ow","though • through • enough • cough • bought • bough"],[58,"oe","ō","toe • goes"],[59,"ey","ā, ē, ĭ","they • key • valley"],[60,"igh","ī","night • light"],[61,"kn","n — beginning only","knee • know"],[62,"gn","n — beginning and end","gnaw • sign"],[63,"wr","r — two-letter phonogram","write • wrong"],[64,"ie","ē, ī, ĭ","field • pie • friend"],[65,"dge","j — after a single vowel","badge • bridge"],[66,"ei","ē, ā, ĭ","ceiling • vein • foreign"],[67,"eigh","ā","eight • weigh"],[68,"ti","sh — in syllables after the first","nation"],[69,"si","sh, zh","session • vision"],[70,"ci","sh","special • social"]
   ];
   const PHONOGRAM_PRESETS=[[1,26,"1–26 (School Week 1)"],[27,54,"27–54 (School Week 2)"],[55,70,"55–70"],[1,70,"All 70"]];
+  const PHONOGRAM_WORDS={1:[],2:[],3:[],4:[],5:[],6:[],7:[],8:[],9:[],10:[],11:[],12:[],13:[],14:[],15:[],16:[],17:[],18:[],19:[],20:[],21:[],22:[],23:[],24:[],25:[],26:[],27:[],28:[],29:[],30:[],31:[],32:[],33:[],34:[],35:[],36:[],37:[],38:[],39:[],40:[],41:[],42:[],43:[],44:[],45:[],46:[],47:[],48:[],49:[],50:[],51:[],52:[],53:[],54:[],55:[],56:[],57:[],58:[],59:[],60:[],61:[],62:[],63:[],64:[],65:[],66:[],67:[],68:[],69:[],70:[]};
+  const PG_WORDS=[
+['cat','map','bag','hat','can','jam','rabbit','plant','stamp','black'],
+['queen','quick','quiet','quit','quiz','squid','quest','quack','square','squeeze'],
+['ship','shop','shell','fish','brush','shout','shine','finish','dish','wish'],
+['rain','train','mail','tail','paint','chain','brain','plain','wait','sail'],
+['boy','toy','joy','enjoy','royal','annoy','destroy','loyal','employ','oyster'],
+['coin','join','oil','point','voice','choice','boil','noise','soil','toilet'],
+['night','light','right','bright','high','sight','fight','tight','might','flight'],
+['write','wrong','wrap','wrist','wreck','wrote','writer','wrench','wring','wrapped'],
+['special','social','official','precious','delicious','magician','musician','ancient','racial','facial'],
+['nation','station','motion','patient','action','attention','question','partial','mention','vacation']
+];
+  // Use the existing phonogram examples as the authoritative base and add curated variety for the high-use patterns above.
+  PHONOGRAMS.forEach(p=>{PHONOGRAM_WORDS[p[0]]=p[3].split(/\s*[•,]\s*/).filter(Boolean);});
+  [[1,PG_WORDS[0]],[8,PG_WORDS[1]],[27,PG_WORDS[2]],[36,PG_WORDS[3]],[37,PG_WORDS[4]],[38,PG_WORDS[5]],[60,PG_WORDS[6]],[63,PG_WORDS[7]],[68,PG_WORDS[9]],[70,PG_WORDS[8]]].forEach(([id,w])=>PHONOGRAM_WORDS[id]=w);
+  const pgSession={mode:'',items:[],index:0};
+  const pgShuffle=a=>{const x=a.slice();for(let i=x.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[x[i],x[j]]=[x[j],x[i]];}return x;};
+  const pgStart=(mode,count)=>{pgSession.mode=mode;pgSession.index=0;const ids=pgShuffle(PHONOGRAMS.map(p=>p[0]));pgSession.items=pgShuffle(ids.flatMap(id=>pgShuffle(PHONOGRAM_WORDS[id]||[]).slice(0,3).map(word=>({id,word})))).slice(0,count);};
+  const pgCurrent=()=>pgSession.items[pgSession.index];
 
   const STORE='kmtEnglishSpaldingProgress';
   const ACTIVE='kmtEnglishActiveSession';
@@ -131,10 +151,13 @@
   }
   function renderPractice(){
     if(engCategory==='phonograms'){
-      const p=PHONOGRAMS[practiceIndex%70], wrong1=PHONOGRAMS[(practiceIndex+7)%70][1], wrong2=PHONOGRAMS[(practiceIndex+13)%70][1];
-      const choices=[p[1],wrong1===p[1]?PHONOGRAMS[(practiceIndex+21)%70][1]:wrong1,wrong2===p[1]?PHONOGRAMS[(practiceIndex+29)%70][1]:wrong2].sort(()=>Math.random()-.5);
-      $('englishPractice').innerHTML='<div class="eng-card"><div class="ruleNum">PHONOGRAM '+p[0]+' OF 70</div><div class="eng-q">Which phonogram makes these sound(s): <b>'+esc(p[2])+'</b>?</div><div id="engChoices">'+choices.map((x,i)=>'<button class="eng-choice" data-i="'+i+'">'+esc(x)+'</button>').join('')+'</div><div id="engFeedback"></div></div>';
-      $('engChoices').querySelectorAll('button').forEach(b=>b.onclick=()=>{const good=b.textContent===p[1];$('engChoices').querySelectorAll('button').forEach(x=>x.disabled=true);state.practice++;if(good){state.correct++;b.classList.add('correct');}else{b.classList.add('wrong');state.review.push({phonogram:p[0],answer:p[1],at:Date.now()});}save();$('engFeedback').innerHTML='<div class="eng-feedback">'+(good?'✅ Correct!':'❌ Correct answer: <b>'+esc(p[1])+'</b>')+'<br>Example: '+esc(p[3])+'</div><button class="btn primary" id="engNextPractice">Next →</button>';$('engNextPractice').onclick=()=>{practiceIndex++;renderPractice();};});
+      if(pgSession.mode!=='practice'||!pgSession.items.length||practiceIndex===0||practiceIndex>=pgSession.items.length){pgStart('practice',12);practiceIndex=0;}
+      const item=pgCurrent(),p=PHONOGRAMS[item.id-1], bank=PHONOGRAM_WORDS[item.id]||[];
+      const choices=pgShuffle([item.word,...pgShuffle(Object.values(PHONOGRAM_WORDS).flat().filter(w=>w!==item.word)).slice(0,4)]);
+      $('englishPractice').innerHTML='<div class="eng-card"><div class="ruleNum">PHONOGRAM PRACTICE — '+(practiceIndex+1)+' OF '+pgSession.items.length+'</div><div class="eng-q">🔊 Listen to the sound, then choose a word that contains the phonogram.</div><button class="btn primary" id="pgHearPractice">🔊 Hear Sound</button><div class="phon-practice-sound"><b>Phonogram:</b> '+esc(p[1])+' &nbsp; <b>Sound:</b> '+esc(p[2])+'</div><div id="engChoices">'+choices.map(x=>'<button class="eng-choice" data-word="'+esc(x)+'">'+esc(x)+'</button>').join('')+'</div><div class="phon-example-bank"><b>Example bank:</b> '+bank.map(esc).join(' • ')+'</div><div id="engFeedback"></div><button class="btn primary" id="engNextPractice">Next →</button></div>';
+      $('pgHearPractice').onclick=()=>speak('Phonogram '+p[1]+'. Sound: '+p[2]+'.');
+      $('engChoices').querySelectorAll('button').forEach(b=>b.onclick=()=>{const good=bank.includes(b.dataset.word);$('engChoices').querySelectorAll('button').forEach(x=>x.disabled=true);state.practice++;if(good){state.correct++;b.classList.add('correct');}else{b.classList.add('wrong');state.review.push({phonogram:item.id,answer:item.word,at:Date.now()});}save();$('engFeedback').innerHTML='<div class="eng-feedback">'+(good?'✅ Correct!':'❌ Choose a word that contains this phonogram.')+'</div>';});
+      $('engNextPractice').onclick=()=>{practiceIndex++;pgSession.index++;if(pgSession.index>=pgSession.items.length){pgStart('practice',12);practiceIndex=0;}renderPractice();};
       return;
     }
     const q=[
@@ -166,11 +189,12 @@
   function renderDictation(){
     const isPh=engCategory==='phonograms';
     if(isPh){
-      const p=PHONOGRAMS[dictIndex%70];
-      $('englishDictation').innerHTML='<div class="eng-card"><div class="ruleNum">PHONOGRAM '+p[0]+' OF 70</div><div class="eng-q">🔊 Listen to the sounds, then write the phonogram.</div><button class="btn primary" id="speakDictation">🔊 Hear Sounds</button><div class="pencil-label">✏️ Pencil Writing</div><div class="eng-writing-wrap"><canvas id="dictPad" class="eng-pad" width="700" height="210"></canvas><div class="eng-pencil-tools"><button class="btn primary" id="dictWriteBtn">🖊️ Write</button><button class="btn secondary" id="dictEraseBtn">🧽 Erase</button><span id="dictModeText" class="muted">Write mode — Apple Pencil</span></div></div><div id="dictFeedback"></div><button class="btn primary" id="dictCheck">✓ Check</button> <button class="btn secondary" id="dictNext">Next →</button></div>';
-      $('speakDictation').onclick=()=>speak('Phonogram '+p[1]+'. Sounds: '+p[2]);setupDictationPad();
-      $('dictCheck').onclick=()=>{const filled=!canvasBlank($('dictPad'));state.practice++;if(filled)state.correct++;else state.review.push({phonogram:p[0],answer:p[1],at:Date.now()});save();$('dictFeedback').innerHTML='<div class="eng-feedback">'+(filled?'✅ Writing recorded.':'⚠️ Please write the phonogram first.')+'<br>Target: <b>'+esc(p[1])+'</b></div>';};
-      $('dictNext').onclick=()=>{dictIndex++;renderDictation();};return;
+      if(pgSession.mode!=='dictation'||!pgSession.items.length||dictIndex===0||dictIndex>=pgSession.items.length){pgStart('dictation',12);dictIndex=0;}
+      const item=pgCurrent(),p=PHONOGRAMS[item.id-1];
+      $('englishDictation').innerHTML='<div class="eng-card"><div class="ruleNum">PHONOGRAM DICTATION — '+(dictIndex+1)+' OF '+pgSession.items.length+'</div><div class="eng-q">🎧 <b>Teacher says the phonogram sound.</b> Write a whole word that contains that sound.</div><button class="btn primary" id="speakDictation">🔊 Hear Teacher Sound</button><div class="phon-teacher-note">Target sound: <b>'+esc(p[2])+'</b><br><span class="muted">Think of a word. Then write the whole word with your Apple Pencil.</span></div><div class="pencil-label">✏️ Pencil Writing — Whole Word</div><div class="eng-writing-wrap"><canvas id="dictPad" class="eng-pad" width="700" height="210"></canvas><div class="eng-pencil-tools"><button class="btn primary" id="dictWriteBtn">🖊️ Write</button><button class="btn secondary" id="dictEraseBtn">🧽 Erase</button><span id="dictModeText" class="muted">Write mode — Apple Pencil</span></div></div><div id="dictFeedback"></div><button class="btn primary" id="dictCheck">✓ Check Writing</button> <button class="btn secondary" id="dictNext">Next Word →</button></div>';
+      $('speakDictation').onclick=()=>speak('Listen. Phonogram '+p[1]+'. Sound: '+p[2]+'. Now write a whole word containing that sound.');setupDictationPad();
+      $('dictCheck').onclick=()=>{const filled=!canvasBlank($('dictPad'));state.practice++;if(filled)state.correct++;else state.review.push({phonogram:item.id,answer:item.word,at:Date.now()});save();$('dictFeedback').innerHTML='<div class="eng-feedback">'+(filled?'✅ Writing recorded for Parent/Admin review.':'⚠️ Please write the whole word first.')+'<br><b>Expected example:</b> '+esc(item.word)+'</div>';};
+      $('dictNext').onclick=()=>{dictIndex++;pgSession.index++;if(pgSession.index>=pgSession.items.length){pgStart('dictation',12);dictIndex=0;}renderDictation();};return;
     }
     const item=TEST_WORDS[dictIndex%TEST_WORDS.length];
     $('englishDictation').innerHTML='<div class="eng-card"><div class="ruleNum">SPALDING RULE '+item.r+'</div><div class="eng-q">🔊 Listen, then spell the word.</div><button class="btn primary" id="speakDictation">🔊 Hear Word</button><div class="pencil-label">✏️ Pencil Writing</div><div class="eng-writing-wrap"><canvas id="dictPad" class="eng-pad" width="700" height="210"></canvas><div class="eng-pencil-tools"><button class="btn primary" id="dictWriteBtn">🖊️ Write</button><button class="btn secondary" id="dictEraseBtn">🧽 Erase</button><span id="dictModeText" class="muted">Write mode — Apple Pencil</span></div></div><input id="dictInput" class="eng-input" autocapitalize="none" autocomplete="off" spellcheck="false" placeholder="Or type the spelling here"><div id="dictFeedback"></div><button class="btn primary" id="dictCheck">Check</button> <button class="btn secondary" id="dictNext">Next</button></div>';
@@ -201,16 +225,18 @@
     $('englishTest').innerHTML='<div class="eng-card"><h3>🔤 Phonogram Test</h3><p>Test only phonograms 1–70. This is completely separate from the Spelling Test.</p><div class="eng-test-controls"><label>Answer Method <select id="engAnswerMode"><option value="pencil">✏️ Apple Pencil</option><option value="keyboard">⌨️ Keyboard</option></select></label><label>Timer <select id="engMinutes"><option value="4">4 minutes</option><option value="5">5 minutes</option></select></label></div><button class="btn primary" id="startEnglishTest">▶ Start Phonogram Test</button></div>';
     $('startEnglishTest').onclick=startEnglishTest;
   }
+  function pgMakeItemsForTest(){pgStart('test',10);return pgSession.items.map(item=>{const p=PHONOGRAMS[item.id-1];return {r:item.id,p:'Teacher says the sound '+p[2]+'. Write a whole word containing that sound.',a:item.word,why:'Phonogram '+p[1]+' — '+p[2],phonogram:p[1],phonogramId:item.id};});}
   function startEnglishTest(){
-    if(testStarted)return;testMode=$('engAnswerMode').value;testSet=(engCategory==='phonograms'?[...PHONOGRAMS].sort(()=>Math.random()-.5).slice(0,10).map(p=>({r:p[0],p:'Write the phonogram after hearing its sounds: '+p[2],a:p[1],why:'Phonogram '+p[0]})):[...TEST_WORDS].sort(()=>Math.random()-.5).slice(0,10));testIndex=0;testScore=0;testDone=false;testStarted=true;testBegin=Date.now();testLeft=(+$('engMinutes').value||4)*60;testSubmission=null;renderTestQuestion();persistActive();startEnglishTimer();
+    if(testStarted)return;testMode=$('engAnswerMode').value;testSet=(engCategory==='phonograms'?pgMakeItemsForTest():[...TEST_WORDS].sort(()=>Math.random()-.5).slice(0,10));testIndex=0;testScore=0;testDone=false;testStarted=true;testBegin=Date.now();testLeft=(+$('engMinutes').value||4)*60;testSubmission=null;renderTestQuestion();persistActive();startEnglishTimer();
   }
   function startEnglishTimer(){clearInterval(testTimer);testTimer=setInterval(()=>{testLeft=Math.max(0,Math.ceil(((testBegin+(+$('engMinutes')?.value||4)*60000)-Date.now())/1000));updateEnglishTimer();persistActive();if(testLeft<=0){clearInterval(testTimer);testTimer=null;submitEnglishTest(true);}},250);}
   function updateEnglishTimer(){const x=$('engTestTimer');if(x){x.textContent=Math.floor(testLeft/60)+':'+String(testLeft%60).padStart(2,'0');x.classList.toggle('warn',testLeft<=30);}}
   function renderTestQuestion(){
     if(testIndex>=testSet.length){submitEnglishTest(false);return;}
     const q=testSet[testIndex];
-    $('englishTest').innerHTML='<div class="eng-card"><div class="eng-test-top"><b>Question '+(testIndex+1)+' of '+testSet.length+'</b><span id="engTestTimer" class="timer">'+Math.floor(testLeft/60)+':'+String(testLeft%60).padStart(2,'0')+'</span></div><div class="ruleNum">'+(engCategory==='phonograms'?'PHONOGRAM '+q.r:'SPALDING RULE '+q.r)+'</div><div class="eng-q">'+esc(q.p)+'</div>'+(testMode==='pencil'?'<div class="eng-writing-wrap"><canvas id="engPad" class="eng-pad" width="700" height="210"></canvas><div class="eng-pencil-tools"><button class="btn primary" id="engWriteBtn">🖊️ Write</button><button class="btn secondary" id="engEraseBtn">🧽 Erase</button><span id="engModeText" class="muted">Write mode — Apple Pencil</span></div></div>':'<input id="engAnswerInput" class="eng-answer-input" autocapitalize="none" autocomplete="off" spellcheck="false" placeholder="Type your answer">')+'<div class="eng-test-actions"><button class="btn secondary" id="engNextBtn">'+(testIndex===testSet.length-1?'Finish':'Next →')+'</button><button class="btn primary" id="engSubmitBtn">✓ Submit Test</button></div></div>';
+    $('englishTest').innerHTML='<div class="eng-card"><div class="eng-test-top"><b>Question '+(testIndex+1)+' of '+testSet.length+'</b><span id="engTestTimer" class="timer">'+Math.floor(testLeft/60)+':'+String(testLeft%60).padStart(2,'0')+'</span></div><div class="ruleNum">'+(engCategory==='phonograms'?'PHONOGRAM '+q.r:'SPALDING RULE '+q.r)+'</div><div class="eng-q">'+esc(q.p)+'</div>'+(engCategory==='phonograms'?'<button class="btn primary" id="engHearPhonTest">🔊 Hear Teacher Sound</button><div class="phon-teacher-note">Write a whole word containing the sound. The answer is not shown until review.</div>':'')+(testMode==='pencil'?'<div class="eng-writing-wrap"><canvas id="engPad" class="eng-pad" width="700" height="210"></canvas><div class="eng-pencil-tools"><button class="btn primary" id="engWriteBtn">🖊️ Write</button><button class="btn secondary" id="engEraseBtn">🧽 Erase</button><span id="engModeText" class="muted">Write mode — Apple Pencil</span></div></div>':'<input id="engAnswerInput" class="eng-answer-input" autocapitalize="none" autocomplete="off" spellcheck="false" placeholder="Type your answer">')+'<div class="eng-test-actions"><button class="btn secondary" id="engNextBtn">'+(testIndex===testSet.length-1?'Finish':'Next →')+'</button><button class="btn primary" id="engSubmitBtn">✓ Submit Test</button></div></div>';
     if(testMode==='pencil')setupEnglishPad();else $('engAnswerInput').addEventListener('input',persistActive);
+    if(engCategory==='phonograms' && $('engHearPhonTest')) $('engHearPhonTest').onclick=()=>speak('Listen. Phonogram '+q.phonogram+'. Sound: '+q.why.split(' — ')[1]+'. Now write a whole word containing that sound.');
     $('engNextBtn').onclick=()=>{captureEnglishAnswer();testIndex++;renderTestQuestion();persistActive();};
     $('engSubmitBtn').onclick=()=>{if(confirm('Submit the English test now?'))submitEnglishTest(false);};
     updateEnglishTimer();
