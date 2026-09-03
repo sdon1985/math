@@ -321,3 +321,50 @@
   wire();
   window.addEventListener('pagehide',()=>persistActive());window.addEventListener('beforeunload',()=>persistActive());
 })();
+
+/* ===== Production 3.6.0 — Phonogram Sound → Symbol ===== */
+(function(){
+  const K=window.KMT||(window.KMT={});
+  const sounds=[
+    ["a","short a"],["c","/k/ or /s/"],["d","/d/"],["f","/f/"],["g","/g/ or /j/"],
+    ["o","short o"],["s","/s/ or /z/"],["qu","/kw/"],["b","/b/"],["e","short e"],
+    ["h","/h/"],["i","short i"],["j","/j/"],["k","/k/"],["l","/l/"],["m","/m/"],
+    ["n","/n/"],["p","/p/"],["r","/r/"],["t","/t/"],["u","short u"],["v","/v/"],
+    ["w","/w/"],["x","/ks/"],["y","/y/"],["z","/z/"],["sh","/sh/"],["ee","/ē/"],
+    ["th","/th/"],["ow","/ow/ or /ō/"],["ou","/ou/"],["oo","/oo/"],["ch","/ch/"],
+    ["ar","/ar/"],["ay","/ā/"],["ai","/ā/"],["oy","/oy/"],["oi","/oi/"],["er","/er/"],
+    ["ir","/er/"],["ur","/er/"],["wor","/wər/"],["ear","/ear/"],["ng","/ng/"],["ea","/ē/"],
+    ["aw","/aw/"],["au","/aw/"],["or","/or/"],["ck","/k/"],["wh","/wh/"],["ed","/ed/"],
+    ["ew","/ū/"],["ui","/oo/ or /ū/"],["oa","/ō/"],["gu","/g/"],["ph","/f/"],
+    ["ough","varies by word"],["oe","/ō/"],["ey","/ē/ or /ā/"],["igh","/ī/"],
+    ["kn","/n/"],["gn","/n/"],["wr","/r/"],["ie","/ī/ or /ē/"],["dge","/j/"],
+    ["ei","/ē/ or /ā/"],["eigh","/ā/"],["ti","/sh/"],["si","/zh/ or /sh/"],["ci","/sh/"]
+  ];
+  const state={items:[],index:0,answers:[]};
+  function shuffle(a){a=a.slice();for(let i=a.length-1;i;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+  function start(start=1,end=70,count=10){
+    state.items=shuffle(sounds.slice(start-1,end)).slice(0,count).map(x=>({symbol:x[0],sound:x[1]}));
+    state.index=0;state.answers=[];return state;
+  }
+  function current(){return state.items[state.index]||null}
+  function hear(){
+    const x=current();if(!x||!("speechSynthesis" in window))return;
+    speechSynthesis.cancel();
+    let text=x.sound.replace(/\//g,"");
+    if(x.sound==="short a") text="short a vowel sound";
+    if(x.sound==="short e") text="short e vowel sound";
+    if(x.sound==="short i") text="short i vowel sound";
+    if(x.sound==="short o") text="short o vowel sound";
+    if(x.sound==="short u") text="short u vowel sound";
+    const u=new SpeechSynthesisUtterance(text);u.rate=.55;speechSynthesis.speak(u);
+  }
+  function record(written,image){
+    const x=current();if(!x)return null;
+    const answer=String(written||"").trim().toLowerCase().replace(/\s+/g,"");
+    const r={expected:x.symbol,written:answer,image:image||null,ocrMatch:answer?answer===x.symbol:null,status:"pending_review"};
+    state.answers.push(r);return r;
+  }
+  function next(){if(state.index<state.items.length-1){state.index++;return current()}return null}
+  KMT.PhonogramSoundToSymbol={start,current,hear,record,next,state,
+    instructions:"Hear only the sound. Write the phonogram symbol with Apple Pencil. Submit the handwriting for review."};
+})();
