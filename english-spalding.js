@@ -119,6 +119,37 @@
   function hearPhonogram(item){if(!item)return;playPhoneme(item.variant||phonogramAudioVariant(item.id));}
   function phonogramCue(item){const s=item?.variant?.kind;if(s==='th')return item.variant.voiced?'Tongue gently between your teeth, with your voice turned on.':'Tongue gently between your teeth, with air and no voice.';if(s==='sh')return 'Make a quiet, long air sound.';if(s==='ch')return 'Start with a quick stop, then a quiet air sound.';return 'Listen carefully to the sound. Do not say the phonogram name.';}
 
+  /* Natural spoken fallback for Practice/Dictation. The previous release used
+     SpeechSynthesis and sounded like a teacher/example word. The 3.9.0 Web
+     Audio oscillator was too synthetic (music-like), so these two activities
+     intentionally use the browser's natural voice again. The target symbol is
+     never included in the spoken prompt. */
+  const PHONOGRAM_SPEECH_EXAMPLES={
+    a:['at','ape','all'], c:['cat','cent'], d:['dog'], f:['fish'], g:['go','gem'], o:['odd','open','moon'], s:['sun','is'], qu:['quack'],
+    b:['bat'], e:['egg','eagle'], h:['hat'], i:['it','ice'], j:['jam'], k:['kite'], l:['leg'], m:['man'], n:['net'], p:['pig'], r:['red'], t:['top'], u:['up','use','rule'], v:['van'], w:['win'], x:['box'], y:['yes','gym','my'], z:['zoo'],
+    sh:['ship'], ee:['see'], th:['thin','this'], ow:['cow','snow'], ou:['out','soup','country'], oo:['moon','book'], ch:['chip'], ar:['car'], ay:['day'], ai:['rain'], oy:['boy'], oi:['coin'], er:['her'], ir:['bird'], ur:['nurse'], wor:['work'], ear:['early'], ng:['sing'], ea:['eat','head','great'], aw:['saw'], au:['haul'], or:['for'], ck:['back'], wh:['when'], ed:['handed','lived','jumped'], ew:['few'], ui:['fruit'], oa:['boat'], gu:['guess'], ph:['phone'], ough:['though','through','enough','cough','bought','bough'], oe:['toe'], ey:['they','key','valley'], igh:['night'], kn:['knee'], gn:['gnaw','sign'], wr:['write'], ie:['field','pie','friend'], dge:['badge'], ei:['ceiling','vein','foreign'], eigh:['eight'], ti:['nation'], si:['session','vision'], ci:['special']
+  };
+  function phonogramSpeechExample(item){
+    const symbol=String(item?.symbol||PHONOGRAMS[item?.id-1]?.[1]||'').toLowerCase();
+    const words=PHONOGRAM_SPEECH_EXAMPLES[symbol]||[];
+    if(!words.length)return PHONOGRAMS[item?.id-1]?.[3]?.split(/\s*[•,]\s*/)[0]||'listen carefully';
+    const k=item?.variant?.kind;
+    if(symbol==='th')return item?.variant?.voiced?'this':'thin';
+    if(symbol==='c')return k==='s'?'cent':'cat';
+    if(symbol==='g')return k==='j'?'gem':'go';
+    if(symbol==='s')return k==='z'?'is':'sun';
+    if(symbol==='a')return k==='vowel' && item?.variant?.f===800?'ape':'at';
+    if(symbol==='o')return item?.variant?.f===600?'open':'odd';
+    if(symbol==='i')return item?.variant?.f===520?'it':'ice';
+    if(symbol==='u')return item?.variant?.f===500?'up':'use';
+    if(symbol==='y')return k==='y'?'yes':(item?.variant?.f===260?'my':'gym');
+    if(symbol==='si')return k==='zh'?'vision':'session';
+    return words[Math.floor(Math.random()*words.length)];
+  }
+  function speakPhonogramSound(item){
+    try{if(!('speechSynthesis' in window))return;speechSynthesis.cancel();const word=phonogramSpeechExample(item);const u=new SpeechSynthesisUtterance('Listen to the beginning sound in '+word+'.');u.rate=.72;u.pitch=1;u.volume=1;speechSynthesis.speak(u);}catch(e){}
+  }
+
   const STORE='kmtEnglishSpaldingProgress';
   const ACTIVE='kmtEnglishActiveSession';
   let state=JSON.parse(localStorage.getItem(STORE)||'null')||{practice:0,correct:0,tests:0,testCorrect:0,review:[],ruleSeen:{},phonogramsLearned:{}};
@@ -188,7 +219,7 @@
       const item=pgCurrent(), p=PHONOGRAMS[item.id-1], choices=pgShuffle([item.id,...pgShuffle(selectedPhonograms().filter(x=>x[0]!==item.id).map(x=>x[0])).slice(0,3)]);
       $('englishPractice').innerHTML='<div class="eng-card">'+phonogramRangeHtml('practice',12)+'<div class="ruleNum">PHONOGRAM PRACTICE — '+(practiceIndex+1)+' OF '+pgSession.items.length+'</div><div class="eng-q">🎧 <b>Listen to the sound. Choose the phonogram symbol that represents it.</b></div><button class="btn primary" id="pgHearPractice">🔊 Hear Sound</button><button class="btn secondary" id="pgCuePractice">💡 Teacher Cue</button><div class="phon-teacher-note">Sound only. The answer symbol is not spoken or shown before you choose.</div><div id="engChoices">'+choices.map(id=>'<button class="eng-choice" data-id="'+id+'">🔤 '+esc(PHONOGRAMS[id-1][1])+'</button>').join('')+'</div><div id="engFeedback"></div><button class="btn primary" id="engNextPractice">Next →</button></div>';
       bindPhonRange('practice',(a,b)=>{setActivityPhonRange(a,b);renderPractice();});
-      $('pgHearPractice').onclick=()=>hearPhonogram(item);$('pgCuePractice').onclick=()=>speak(phonogramCue(item));
+      $('pgHearPractice').onclick=()=>speakPhonogramSound(item);$('pgCuePractice').onclick=()=>speak(phonogramCue(item));
       $('engChoices').querySelectorAll('button').forEach(b=>b.onclick=()=>{const good=Number(b.dataset.id)===item.id;$('engChoices').querySelectorAll('button').forEach(x=>x.disabled=true);state.practice++;if(good){state.correct++;b.classList.add('correct');}else{b.classList.add('wrong');state.review.push({phonogram:item.id,answer:p[1],at:Date.now()});}save();$('engFeedback').innerHTML='<div class="eng-feedback">'+(good?'✅ Correct!':'❌ Not quite. Review this sound again with the Parent/Admin reviewer.')+'</div>';});
       $('engNextPractice').onclick=()=>{practiceIndex++;pgSession.index++;if(pgSession.index>=pgSession.items.length){pgStart('practice',count);practiceIndex=0;}renderPractice();};return;
     }
@@ -228,7 +259,7 @@
       $('englishDictation').innerHTML='<div class="eng-card">'+phonogramRangeHtml('dict',count)+'<div class="ruleNum">PHONOGRAM DICTATION — '+(dictIndex+1)+' OF '+pgSession.items.length+'</div><div class="eng-q">🎧 <b>Hear ONLY the phonogram sound. Write the phonogram symbol.</b></div><button class="btn primary" id="speakDictation">🔊 Hear Sound</button><button class="btn secondary" id="dictCue">💡 Teacher Cue</button><div class="phon-teacher-note">Sound → Symbol. Do not write a whole word. The answer symbol is not shown.</div><div class="pencil-label">✏️ Pencil Writing — Phonogram Symbol</div><div class="eng-writing-wrap"><canvas id="dictPad" class="eng-pad" width="700" height="210"></canvas><div class="eng-pencil-tools"><button class="btn primary" id="dictWriteBtn">🖊️ Write</button><button class="btn secondary" id="dictEraseBtn">🧽 Erase</button><span id="dictModeText" class="muted">Write mode — Apple Pencil</span></div></div><div id="dictFeedback"></div><button class="btn primary" id="dictCheck">✓ Check Writing</button> <button class="btn secondary" id="dictNext">Next →</button></div>';
       bindPhonRange('dict',(a,b)=>{setActivityPhonRange(a,b);sessionStorage.setItem('kmtPhonDictCount',String(Math.max(1,Math.min(25,Number($('dictCount')?.value)||10))));renderDictation();});
       const dc=$('dictCount');if(dc)dc.value=String(count);dc?.addEventListener('change',()=>{sessionStorage.setItem('kmtPhonDictCount',dc.value);setActivityPhonRange(phonRangeStart,phonRangeEnd);renderDictation();});
-      $('speakDictation').onclick=()=>hearPhonogram(item);$('dictCue').onclick=()=>speak(phonogramCue(item));setupDictationPad();
+      $('speakDictation').onclick=()=>speakPhonogramSound(item);$('dictCue').onclick=()=>speak(phonogramCue(item));setupDictationPad();
       $('dictCheck').onclick=()=>{const filled=!canvasBlank($('dictPad'));state.practice++;const answer={phonogram:item.id,expected:p[1],at:Date.now(),status:'pending_review'};if(filled)state.review.push(answer);save();$('dictFeedback').innerHTML='<div class="eng-feedback">'+(filled?'⏳ Writing captured. Parent/Admin review will determine whether the phonogram symbol is correct.':'⚠️ Please write the phonogram symbol first.')+'</div>';};
       $('dictNext').onclick=()=>{dictIndex++;pgSession.index++;if(pgSession.index>=pgSession.items.length){pgStart('dictation',Number(sessionStorage.getItem('kmtPhonDictCount')||10));dictIndex=0;}renderDictation();};return;
     }
@@ -364,7 +395,7 @@
   window.addEventListener('pagehide',()=>persistActive());window.addEventListener('beforeunload',()=>persistActive());
 })();
 
-/* ===== Production 3.9.0 — Phonogram Sound → Symbol compatibility API ===== */
+/* ===== Production 3.9.1 — Phonogram Sound → Symbol compatibility API ===== */
 (function(){
   const K=window.KMT||(window.KMT={});
   K.PhonogramSoundToSymbol={
