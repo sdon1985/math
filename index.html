@@ -9,7 +9,7 @@
  --shadow:0 10px 35px rgba(16,24,40,.07);--radius:20px;
 }
 *{box-sizing:border-box}
-/* Production 3.9.1 — prevent accidental long-press/text selection on the learning UI. */
+/* Production 4.0.1 — prevent accidental long-press/text selection on the learning UI. */
 html,body,.page,button,.btn,.navtabs,.card,.eng-card,.phon-card,.stat,.question,.section-title,.muted,.eyebrow,.ruleNum,.phon-big,.phon-sounds,.phon-examples,.phon-teacher-note,.phon-summary,.english-rule,.footer,a {
   -webkit-user-select:none;
   user-select:none;
@@ -97,12 +97,14 @@ select,input{width:100%;padding:12px;border:1px solid #cdd6e2;border-radius:12px
 .pencil-label{margin-top:12px;font-weight:900;font-size:15px}.english-category-tabs{margin-bottom:4px}
 .phon-practice-sound,.phon-teacher-note,.phon-example-bank{margin:12px 0;padding:10px 12px;border-radius:10px;background:rgba(127,127,127,.10)}
 .phon-example-bank{font-size:.95rem}
+
+.hostedBy{color:#7b8797;text-decoration:none;font-weight:700}.hostedBy:hover{text-decoration:underline;color:#2563eb}.hostedBy:focus-visible{outline:2px solid #2563eb;outline-offset:3px;border-radius:4px}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-<script src="./app-config.js"></script><script src="./cloud.js?v=3.9.1"></script>
+<script src="./app-config.js"></script><script src="./cloud.js?v=4.0.0"></script>
 
 <script>
-// Production 3.9.1 — stop accidental long-press text selection/copy on the UI.
+// Production 4.0.1 — stop accidental long-press text selection/copy on the UI.
 document.addEventListener('selectstart',function(e){
   if(!e.target.closest('input,textarea,select,[contenteditable="true"],[contenteditable=""]')) e.preventDefault();
 },true);
@@ -110,7 +112,7 @@ document.addEventListener('selectstart',function(e){
 </head><body>
 <div class="page">
 <header class="topbar">
-  <div><div class="eyebrow">KIDS MATH TEST • Production 3.9.1</div><div id="welcomeTitle">Welcome</div><div class="muted">Your private learning dashboard</div></div>
+  <div><div class="eyebrow">KIDS MATH TEST • Production 4.0.1</div><div id="welcomeTitle">Welcome</div><div class="muted">Your private learning dashboard</div></div>
   <div class="top-actions">
     <button class="btn secondary" id="switchUserBtn">⇄ Switch User</button>
     <a class="btn secondary" href="admin.html">👑 Admin</a>
@@ -209,7 +211,7 @@ document.addEventListener('selectstart',function(e){
 </main>
 </div>
 <div id="modal" class="overlay hidden"><div class="modal"><h2>🔒 Parent Access</h2><div class="muted">Enter parent PIN.</div><input id="pin" type="password" inputmode="numeric"><div class="actions" style="margin-top:10px"><button class="btn primary" id="unlock">Unlock</button><button class="btn secondary" id="cancel">Cancel</button></div></div></div>
-<div class="footer">Production 3.9.1 • Supabase Cloud • Cross-device</div>
+<div class="footer">Hosted by <a class="hostedBy" href="https://www.linkedin.com/in/sdon1985/" target="_blank" rel="noopener noreferrer">Sandeep Dondeti</a></div>
 
 <script src="./app-core.js"></script><script src="./english-spalding.js"></script><script src="./session-nav.js"></script><script src="./cloud-bootstrap.js"></script>
 

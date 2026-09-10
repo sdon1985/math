@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Kids Math Test — Login</title>
+<title>Student Practice Sheets — Login</title>
 <script src="./app-config.js"></script>
-<script src="./cloud.js?v=3.9.1"></script>
+<script src="./cloud.js?v=4.0.0-auth2"></script>
 <style>
 :root{--ink:#142033;--muted:#667085;--line:#dfe5ee;--brand:#2563eb;--bg:#f3f7fc}
 *{box-sizing:border-box}
-/* Production 3.9.1 — prevent accidental long-press/text selection on the learning UI. */
+/* Production 4.0.1 — prevent accidental long-press/text selection on the learning UI. */
 html,body,.page,button,.btn,.navtabs,.card,.eng-card,.phon-card,.stat,.question,.section-title,.muted,.eyebrow,.ruleNum,.phon-big,.phon-sounds,.phon-examples,.phon-teacher-note,.phon-summary,.english-rule,.footer,a {
   -webkit-user-select:none;
   user-select:none;
@@ -39,10 +39,12 @@ body{margin:0;min-height:100vh;display:grid;place-items:center;padding:20px;back
 .back{margin-top:10px;background:transparent;border:0;color:var(--brand);font-weight:800;cursor:pointer;width:100%;padding:8px}
 .note{font-size:13px;text-align:center;color:var(--muted);margin-top:8px}
 @media(max-width:420px){.card{padding:22px}.users{gap:8px}.user{padding:12px}}
+
+.hostedBy{color:#7b8797;text-decoration:none;font-weight:700}.hostedBy:hover{text-decoration:underline;color:#2563eb}.hostedBy:focus-visible{outline:2px solid #2563eb;outline-offset:3px;border-radius:4px}
 </style>
 
 <script>
-// Production 3.9.1 — stop accidental long-press text selection/copy on the UI.
+// Production 4.0.1 — stop accidental long-press text selection/copy on the UI.
 document.addEventListener('selectstart',function(e){
   if(!e.target.closest('input,textarea,select,[contenteditable="true"],[contenteditable=""]')) e.preventDefault();
 },true);
@@ -52,7 +54,7 @@ document.addEventListener('selectstart',function(e){
 <main class="card">
   <div class="brand">
     <div class="logo">📚</div>
-    <h1>Kids Math Test</h1>
+    <h1>Student Practice Sheets</h1>
     <div class="muted">Secure cloud login • works on every device</div>
   </div>
 
@@ -118,7 +120,7 @@ document.addEventListener('selectstart',function(e){
 
   <div id="error" class="error"></div>
   <button id="backLogin" class="back hidden" type="button">← Back to Login</button>
-  <div class="footer">Production 3.9.1 • Supabase Auth</div>
+  <div class="footer">Hosted by <a class="hostedBy" href="https://www.linkedin.com/in/sdon1985/" target="_blank" rel="noopener noreferrer">Sandeep Dondeti</a></div>
 </main>
 
 <script>
