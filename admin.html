@@ -329,6 +329,18 @@ function openReview(id){
   document.body.classList.add('review-open');
 }
 
+function expectedAnswer(a){
+  const direct=a?.correctAnswer ?? a?.expected ?? a?.solution ?? a?.ans;
+  if(direct!==undefined && direct!==null && String(direct).trim()!=='') return String(direct);
+  const raw=String(a?.problem ?? a?.question ?? '').replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-').replace(/–/g,'-');
+  const m=raw.match(/(-?\d+(?:\.\d+)?)\s*([+\-*\/])\s*(-?\d+(?:\.\d+)?)/);
+  if(!m) return '';
+  const x=Number(m[1]), y=Number(m[3]); let v;
+  if(m[2]==='+') v=x+y; else if(m[2]==='-') v=x-y; else if(m[2]==='*') v=x*y; else if(m[2]==='/') v=y!==0?x/y:NaN;
+  if(!Number.isFinite(v)) return '';
+  return Number.isInteger(v)?String(v):String(Number(v.toFixed(10)));
+}
+
 function drawReview(focusIndex=null){
   const answers=selected?.submission?.answers||[];
   const c=answers.filter(a=>a.status==='correct').length;
@@ -341,7 +353,8 @@ function drawReview(focusIndex=null){
     '<div class="reviewSummary"><span>✓ Correct: '+c+'</span><span>✗ Wrong: '+w+'</span><span>— Not Answered: '+n+'</span></div>'+
     answers.map(a=>{
       const problem='<div class="answerProblem"><span class="reviewLabel">Question</span><b>'+esc(a.problem||'')+' =</b></div>';
-      const expected='<div class="answerExpected"><span class="reviewLabel">Correct</span><b>'+esc(a.ans||'')+'</b></div>';
+      const expectedValue=expectedAnswer(a);
+      const expected='<div class="answerExpected"><span class="reviewLabel">Correct</span><b>'+esc(expectedValue||'')+'</b></div>';
       const written=a.image
         ? '<div class="answerWritten"><span class="reviewLabel">Student</span><img src="'+a.image+'" alt="Student handwritten answer"></div>'
         : '<div class="answerWritten"><span class="reviewLabel">Student</span><span class="muted">No handwriting</span></div>';
