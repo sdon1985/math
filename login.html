@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Kids Math Test — Login</title>
 <script src="./app-config.js"></script>
-<script src="./cloud.js?v=3.9.1"></script>
+<script src="./cloud.js?v=3.9.2"></script>
 <style>
 :root{--ink:#142033;--muted:#667085;--line:#dfe5ee;--brand:#2563eb;--bg:#f3f7fc}
 *{box-sizing:border-box}
-/* Production 3.9.1 — prevent accidental long-press/text selection on the learning UI. */
+/* Production 3.9.2 — prevent accidental long-press/text selection on the learning UI. */
 html,body,.page,button,.btn,.navtabs,.card,.eng-card,.phon-card,.stat,.question,.section-title,.muted,.eyebrow,.ruleNum,.phon-big,.phon-sounds,.phon-examples,.phon-teacher-note,.phon-summary,.english-rule,.footer,a {
   -webkit-user-select:none;
   user-select:none;
@@ -42,7 +42,7 @@ body{margin:0;min-height:100vh;display:grid;place-items:center;padding:20px;back
 </style>
 
 <script>
-// Production 3.9.1 — stop accidental long-press text selection/copy on the UI.
+// Production 3.9.2 — stop accidental long-press text selection/copy on the UI.
 document.addEventListener('selectstart',function(e){
   if(!e.target.closest('input,textarea,select,[contenteditable="true"],[contenteditable=""]')) e.preventDefault();
 },true);
@@ -52,7 +52,7 @@ document.addEventListener('selectstart',function(e){
 <main class="card">
   <div class="brand">
     <div class="logo">📚</div>
-    <h1>Kids Math Test</h1>
+    <h1>Student Practice Sheets</h1>
     <div class="muted">Secure cloud login • works on every device</div>
   </div>
 
@@ -118,7 +118,7 @@ document.addEventListener('selectstart',function(e){
 
   <div id="error" class="error"></div>
   <button id="backLogin" class="back hidden" type="button">← Back to Login</button>
-  <div class="footer">Production 3.9.1 • Supabase Auth</div>
+  <div class="footer">Production 3.9.2 • Supabase Auth</div>
 </main>
 
 <script>

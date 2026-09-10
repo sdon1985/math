@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Kids Math Test — Admin</title><script src="./app-config.js"></script><script src="./cloud.js?v=3.9.1"></script>
+<title>Kids Math Test — Admin</title><script src="./app-config.js"></script><script src="./cloud.js?v=3.9.2"></script>
 <style>
 :root{--bg:#f4f7fb;--card:#fff;--ink:#142033;--muted:#667085;--line:#dfe5ee;--brand:#2563eb;--good:#dcfce7;--danger:#fff0f0;--warn:#fff3cd}*{box-sizing:border-box}
 /* Production 3.9.2 — prevent accidental long-press/text selection on the learning UI. */
@@ -156,7 +156,7 @@ document.addEventListener('selectstart',function(e){
 },true);
 </script>
 </head><body><div class="wrap">
-<header class="header"><div><div style="font-size:12px;font-weight:900;letter-spacing:.12em;color:#64748b">STUDENT PRACTICE SHEETS • Production 3.9.2</div><h1>👑 Parent Dashboard</h1><div class="muted">Cloud worksheets, reviews and progress</div></div><div class="actions"><a class="btn" href="index.html">👤 User Page</a><a class="btn" href="login.html">🔐 Switch Login</a><button id="refresh" class="btn">↻ Refresh</button></div></header>
+<header class="header"><div><div style="font-size:12px;font-weight:900;letter-spacing:.12em;color:#64748b">STUDENT PRACTICE SHEETS • Production 3.9.2</div><h1>👑 Admin Dashboard</h1><div class="muted">Cloud worksheets, reviews and progress</div></div><div class="actions"><a class="btn" href="index.html">👤 User Page</a><a class="btn" href="login.html">🔐 Switch Login</a><button id="refresh" class="btn">↻ Refresh</button></div></header>
 <section class="card"><div style="font-size:20px;font-weight:900">⏳ Submitted — Under Review</div><div class="muted">Worksheets from students who are not subscribed to a parent appear here. Subscribed students are reviewed entirely in their parent portal.</div><div id="pending"></div></section>
 <section class="card"><div style="font-size:20px;font-weight:900">📊 User Progress</div><div class="muted">Cloud data for students not assigned to a parent. Subscribed students remain under parent review.</div><div id="users"></div></section><section class="card" id="accountCard"><div style="font-size:20px;font-weight:900">🗑️ Student Account Management</div><div class="muted">Permanently delete one student, including worksheets, progress, mapping and Supabase Auth account.</div><div class="userProgressPicker" style="margin-top:10px"><label><b>Student:</b><select id="deleteStudentSelect"><option value="">Select a student…</option></select><button id="deleteStudentBtn" class="btn danger" style="margin-left:10px" disabled>🗑️ Delete Student Account</button></label><div class="muted" style="margin-top:8px;font-size:12px">This is permanent. The same email can be registered again; the application user ID is recreated from the email.</div></div></section>
 <section class="card" id="parentManagementCard">

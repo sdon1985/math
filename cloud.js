@@ -12,29 +12,44 @@
   async function rpc(name,body){return api('/rest/v1/rpc/'+name,{method:'POST',body:JSON.stringify(body)})}
   async function login(appId,pin){
     load();
-    const email=await rpc('get_auth_email',{p_app_user_id:appId});
-    if(!email)throw Error('This user is not linked to a Supabase Auth account.');
+    let email;
+    try{ email=await rpc('get_auth_email',{p_app_user_id:appId}); }
+    catch(e){ throw Error('Student account is not registered. Please create a Student Account first.'); }
+    if(!email)throw Error('Student account is not registered. Please create a Student Account first.');
     return finishLogin(email,pin,appId);
   }
   function authPassword(pin){return 'KMT!' + String(pin) + '!2026';}
+  function friendlyAuthError(e){
+    const raw=String(e?.message||e||'');
+    if(/email not confirmed/i.test(raw))return 'Please confirm your email address before logging in.';
+    if(/invalid login credentials|invalid_credentials|invalid credentials/i.test(raw))return 'Student account is not registered, or the PIN is incorrect. Please verify your email and 4-digit PIN.';
+    return 'Student login could not be completed. Please verify your email and 4-digit PIN.';
+  }
   async function finishLogin(email,pin,expectedId){
-    let d;
+    let d,firstError;
     try{
       // Existing production users use the legacy 4-digit password.
       d=await auth('token?grant_type=password',{email:String(email),password:String(pin)});
-    }catch(firstError){
-      // New registered students use a Supabase-compliant password while the
-      // UI still lets them remember only their 4-digit PIN.
-      d=await auth('token?grant_type=password',{email:String(email),password:authPassword(pin)});
+    }catch(e){
+      firstError=e;
+      try{
+        // New registered students use a Supabase-compliant password while the
+        // UI still lets them remember only their 4-digit PIN.
+        d=await auth('token?grant_type=password',{email:String(email),password:authPassword(pin)});
+      }catch(secondError){
+        throw Error(friendlyAuthError(secondError||firstError));
+      }
     }
     S.access=d.access_token;S.refresh=d.refresh_token;S.user=d.user;save();
     let map=await api('/rest/v1/auth_users?select=app_user_id&auth_user_id=eq.'+encodeURIComponent(d.user.id));
 
-    // Repair a confirmed/new student whose Auth account exists but whose
-    // application mapping was not created before email confirmation.
-    // The database function requires auth.uid() to equal p_auth_user_id.
-    if(!map[0] && String(d.user.user_metadata?.role||'').toLowerCase()==='student'){
-      const repairedId=stableStudentId(d.user.email||email);
+    // Repair any confirmed student whose application mapping/profile was not
+    // created during signup or email confirmation. Student login is already
+    // an explicit student-only path, so we can safely derive the stable app ID
+    // from the confirmed Auth email. This also works when the confirmation link
+    // was opened on a different browser/device and localStorage is unavailable.
+    const repairedId=stableStudentId(d.user.email||email);
+    if(!map[0]){
       try{
         await rpc('register_student',{
           p_auth_user_id:d.user.id,
@@ -45,14 +60,29 @@
         map=await api('/rest/v1/auth_users?select=app_user_id&auth_user_id=eq.'+encodeURIComponent(d.user.id));
       }catch(repairError){
         console.error('Student mapping repair failed:',repairError);
+        await logout();
+        throw Error('Your email is confirmed, but the Student profile could not be synchronized. Please run the Production 3.9.2 database migration, then try Student Login again.');
       }
     }
 
     if(!map[0]||(expectedId&&map[0].app_user_id!==expectedId)){
-      await logout();throw Error('Security check failed: Auth account is not mapped correctly. Please use Production 3.9.1.');
+      await logout();throw Error('Student account mapping could not be verified. Please try Student Login again.');
     }
-    const p=await api('/rest/v1/kids_users?select=id,display_name,role&id=eq.'+encodeURIComponent(map[0].app_user_id));
-    if(!p[0])throw Error('Kids Math Test user profile was not found.');
+    let p=await api('/rest/v1/kids_users?select=id,display_name,role&id=eq.'+encodeURIComponent(map[0].app_user_id));
+    if(!p[0]){
+      try{
+        await rpc('register_student',{
+          p_auth_user_id:d.user.id,
+          p_app_user_id:map[0].app_user_id,
+          p_display_name:d.user.user_metadata?.display_name||d.user.user_metadata?.name||'Student',
+          p_pin:String(pin)
+        });
+        p=await api('/rest/v1/kids_users?select=id,display_name,role&id=eq.'+encodeURIComponent(map[0].app_user_id));
+      }catch(profileError){
+        console.error('Student profile repair failed:',profileError);
+      }
+    }
+    if(!p[0])throw Error('Your email is confirmed, but the Student profile is not available. Please try again after the Production 3.9.2 database migration is installed.');
     S.user={authId:d.user.id,id:p[0].id,name:p[0].display_name,role:p[0].role,email:String(email)};save();if(S.user.role==='user')await syncStudentPin(pin);return S.user;
   }
   async function loginWithEmail(email,pin){return finishLogin(email.trim().toLowerCase(),pin,null)}
@@ -77,7 +107,14 @@
   async function parentLogin(email,password){
     email=String(email||'').trim().toLowerCase(); password=parentPassword(password);
     if(!email||password.length<6)throw Error('Enter parent email and password.');
-    const d=await auth('token?grant_type=password',{email,password});
+    let d;
+    try{ d=await auth('token?grant_type=password',{email,password}); }
+    catch(e){
+      const raw=String(e?.message||e||'');
+      if(/email not confirmed/i.test(raw))throw Error('Please confirm your parent email address before logging in.');
+      if(/invalid login credentials|invalid_credentials|invalid credentials/i.test(raw))throw Error('Parent account is not registered, or the password is incorrect.');
+      throw Error('Parent login could not be completed. Please verify your email and password.');
+    }
     S.access=d.access_token;S.refresh=d.refresh_token;S.user=d.user;save();
     let p=await api('/rest/v1/parent_users?select=auth_user_id,display_name,email&auth_user_id=eq.'+encodeURIComponent(d.user.id));
     // Recovery path: if the parent confirmed email before the parent SQL migration
@@ -102,7 +139,12 @@
     let d;
     try{d=await auth('signup?redirect_to='+encodeURIComponent(redirect),{email,password,data:{display_name:displayName,role:'parent'}})}
     catch(e){const msg=String(e?.message||e);if(/already registered|already exists/i.test(msg))throw Error('This parent email is already registered. Use Parent Login.');throw e;}
-    if(!d?.user?.id)throw Error('Supabase signup did not return an Auth user. Check Supabase Auth email/password settings and try again.');
+    // Some Supabase/Auth configurations send the confirmation email but do not
+    // return the Auth user object to the browser. Treat that response as a
+    // pending confirmation instead of showing a false registration failure.
+    if(!d?.user?.id){
+      return {name:displayName,role:'parent',email,confirmed:false,pending:true};
+    }
     if(d.access_token){
       await rpc('register_parent',{p_auth_user_id:d.user.id,p_display_name:displayName,p_email:email});
       const u={authId:d.user.id,id:d.user.id,name:displayName,role:'parent',email};S.access=d.access_token;S.refresh=d.refresh_token||null;S.user=u;save();localStorage.removeItem(pendingKey);return {user:u,confirmed:true};
@@ -271,10 +313,16 @@
     // With an existing account, Supabase may intentionally return an obfuscated
     // user object. Never create an application mapping from that object.
     const authId=d?.user?.id;
-    if(!authId || !d.user.identities || d.user.identities.length===0){
-      // The email may have been used in a previous attempt. Try the real
-      // password login to distinguish a usable existing account from an
-      // unconfirmed account without exposing auth internals.
+    if(!authId || !d?.user){
+      // Some Supabase/Auth configurations can send the confirmation email but
+      // omit the user object from the signup response. Do not report a false
+      // failure; the confirmation link will create/synchronize the Student
+      // application profile in finishEmailConfirmation().
+      return {name:displayName,role:'student',email,confirmed:false,pending:true};
+    }
+    if(!d.user.identities || d.user.identities.length===0){
+      // Supabase may intentionally obfuscate an already-used email. Distinguish
+      // a real existing account from a pending unconfirmed registration.
       try{
         const existing=await auth('token?grant_type=password',{email,password:internalPassword});
         if(existing?.user?.id){
@@ -292,7 +340,7 @@
           }
         }
       }
-      throw Error('Supabase did not create a new Auth user. Check that "Allow new users to sign up" is enabled, then try a new email address.');
+      throw Error('This email may already be registered. Use Student Login, or register with a different email address.');
     }
 
     const appId=stableStudentId(email);
@@ -327,25 +375,33 @@
     const me=await authUser();
     if(!me?.id)throw Error('Email confirmation returned no Auth user.');
 
+    // Always synchronize the confirmed Auth account into the application.
+    // Do not depend on localStorage: confirmation can happen on another
+    // browser/device where the original registration state is unavailable.
     const pending=JSON.parse(localStorage.getItem('kmtPendingRegistration')||'null');
-    if(pending?.displayName){
-      const appId=pending.appId || stableStudentId(me.email||pending.email);
-      try{
-        await rpc('register_student',{p_auth_user_id:me.id,p_app_user_id:appId,p_display_name:pending.displayName});
-        localStorage.setItem('kmtPendingRegistration',JSON.stringify({...pending,appId,authId:me.id}));
-      }catch(e){
-        // Ignore duplicate/idempotent mapping errors and verify below.
-        console.warn('Registration mapping:',e);
-      }
+    const email=String(me.email||pending?.email||'').trim().toLowerCase();
+    if(!email)throw Error('Email confirmed, but the student email could not be determined.');
+    const appId=pending?.appId || stableStudentId(email);
+    const displayName=pending?.displayName||me.user_metadata?.display_name||me.user_metadata?.name||'Student';
+
+    try{
+      await rpc('register_student',{
+        p_auth_user_id:me.id,
+        p_app_user_id:appId,
+        p_display_name:displayName
+      });
+    }catch(e){
+      console.error('Registration mapping:',e);
+      throw Error('Email confirmed, but the Student profile could not be created. Please run the Production 3.9.2 database migration, then open the confirmation link again.');
     }
 
     const map=await api('/rest/v1/auth_users?select=app_user_id&auth_user_id=eq.'+encodeURIComponent(me.id));
-    if(!map[0])throw Error('Email confirmed, but the student account mapping was not created. Run the registration SQL once.');
-    const p=await api('/rest/v1/kids_users?select=id,display_name,role&id=eq.'+encodeURIComponent(map[0].app_user_id));
-    if(!p[0])throw Error('Email confirmed, but the student profile was not found.');
+    if(!map[0])throw Error('Email confirmed, but the Student account mapping was not created. Please run the Production 3.9.2 database migration.');
+    const profile=await api('/rest/v1/kids_users?select=id,display_name,role&id=eq.'+encodeURIComponent(map[0].app_user_id));
+    if(!profile[0])throw Error('Email confirmed, but the Student profile was not found. Please try again.');
 
-    S.user={authId:me.id,id:p[0].id,name:p[0].display_name,role:p[0].role,email:me.email};save();
-    localStorage.removeItem(pendingKey);
+    S.user={authId:me.id,id:profile[0].id,name:profile[0].display_name,role:profile[0].role,email};save();
+    localStorage.removeItem('kmtPendingRegistration');
     history.replaceState({},document.title,location.pathname+location.search);
     return S.user;
   }

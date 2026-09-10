@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Kids Math Test — Parent Portal</title>
-<script src="app-config.js"></script><script src="cloud.js?v=3.9.1"></script>
+<script src="app-config.js"></script><script src="cloud.js?v=3.9.2"></script>
 <style>
 *{box-sizing:border-box}
-/* Production 3.9.1 — prevent accidental long-press/text selection on the learning UI. */
+/* Production 3.9.2 — prevent accidental long-press/text selection on the learning UI. */
 html,body,.page,button,.btn,.navtabs,.card,.eng-card,.phon-card,.stat,.question,.section-title,.muted,.eyebrow,.ruleNum,.phon-big,.phon-sounds,.phon-examples,.phon-teacher-note,.phon-summary,.english-rule,.footer,a {
   -webkit-user-select:none;
   user-select:none;
@@ -25,7 +25,7 @@ h1,h2{margin:0 0 8px}.muted{color:#60748f}.top{display:flex;justify-content:spac
 </style>
 
 <script>
-// Production 3.9.1 — stop accidental long-press text selection/copy on the UI.
+// Production 3.9.2 — stop accidental long-press text selection/copy on the UI.
 document.addEventListener('selectstart',function(e){
   if(!e.target.closest('input,textarea,select,[contenteditable="true"],[contenteditable=""]')) e.preventDefault();
 },true);
