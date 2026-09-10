@@ -79,8 +79,7 @@
     const repairedId=stableStudentId(d.user.email||email);
     if(!map[0]){
       try{
-        await rpc('register_student',{
-          p_auth_user_id:d.user.id,
+        await rpc('repair_student_mapping',{
           p_app_user_id:repairedId,
           p_display_name:d.user.user_metadata?.display_name||d.user.user_metadata?.name||'Student',
           p_pin:String(pin)
@@ -89,7 +88,9 @@
       }catch(repairError){
         console.error('Student mapping repair failed:',repairError);
         await logout();
-        throw Error('Your email is confirmed, but the Student profile could not be synchronized. Please run the Production 3.9.2 database migration, then try Student Login again.');
+        const detail=String(repairError?.message||repairError||'');
+        if(/function .*repair_student_mapping.*does not exist|PGRST202/i.test(detail))throw Error('Student profile repair is not enabled yet. Run the Production 3.9.2 Student Mapping Repair SQL in Supabase, then try Student Login again.');
+        throw Error('Your email is confirmed, but the Student profile could not be synchronized. Please run the Production 3.9.2 Student Mapping Repair SQL in Supabase, then try Student Login again.');
       }
     }
 
@@ -99,8 +100,7 @@
     let p=await api('/rest/v1/kids_users?select=id,display_name,role&id=eq.'+encodeURIComponent(map[0].app_user_id));
     if(!p[0]){
       try{
-        await rpc('register_student',{
-          p_auth_user_id:d.user.id,
+        await rpc('repair_student_mapping',{
           p_app_user_id:map[0].app_user_id,
           p_display_name:d.user.user_metadata?.display_name||d.user.user_metadata?.name||'Student',
           p_pin:String(pin)
