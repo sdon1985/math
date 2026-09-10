@@ -8,38 +8,108 @@ function selectedMDTables(){
 return Array.from(document.querySelectorAll(".mdTable:checked"))
 .map(x=>Number(x.value)).filter(Number.isInteger);
 }
+const GRADE_TOPICS={
+  prek:[['counting','Counting & Number Recognition'],['compare','More / Less'],['add5','Addition Within 5'],['sub5','Subtraction Within 5']],
+  k:[['add10','Addition Within 10'],['sub10','Subtraction Within 10'],['add20','Addition Within 20'],['numberBonds','Number Bonds']],
+  1:[['add20','Addition Within 20'],['sub20','Subtraction Within 20'],['add100','Addition Within 100'],['sub100','Subtraction Within 100'],['skip','Skip Counting']],
+  2:[['add3','Three-Digit Addition'],['sub3','Three-Digit Subtraction'],['mult','Multiplication Facts'],['div','Division Facts'],['money','Money & Change']],
+  3:[['mult','Multiplication Facts'],['div','Division Facts'],['add4','Four-Digit Addition'],['sub4','Four-Digit Subtraction'],['area','Area & Perimeter']],
+  4:[['mult2','Multi-Digit Multiplication'],['div2','Long Division'],['factors','Factors & Multiples'],['frac','Fractions'],['dec','Decimals']],
+  5:[['frac','Fractions'],['dec','Decimals'],['percent','Percent'],['volume','Volume'],['expr','Expressions']],
+  6:[['integers','Integers'],['frac','Fractions & Operations'],['ratio','Ratios & Rates'],['percent','Percent'],['expr','Expressions'],['equations','One-Step Equations']],
+  7:[['rational','Rational Numbers'],['ratio','Ratios & Proportions'],['percent','Percent'],['equations','Two-Step Equations'],['geometry','Geometry']],
+  8:[['linear','Linear Equations'],['functions','Functions'],['exponents','Exponents'],['slope','Slope'],['pythagorean','Pythagorean Theorem']]
+};
+function selectedGrade(){return $("grade")?.value||"k"}
+function selectedFocus(){return $("practiceFocus")?.value||"add10"}
+function topicLabel(g,t){return (GRADE_TOPICS[g]||[]).find(x=>x[0]===t)?.[1]||t}
+function syncGradeControls(preferred){
+  const g=$("grade"),f=$("practiceFocus"); if(!g||!f)return;
+  const grade=preferred||g.value||"k";
+  g.value=grade;
+  const topics=GRADE_TOPICS[grade]||GRADE_TOPICS.k;
+  const keep=preferred===grade?selectedFocus():f.value;
+  f.innerHTML=topics.map(x=>'<option value="'+x[0]+'">'+x[1]+'</option>').join("");
+  f.value=topics.some(x=>x[0]===keep)?keep:topics[0][0];
+  const t=f.value;
+  const opMap={counting:'addition',compare:'addition',add5:'addition',sub5:'subtraction',add10:'addition',sub10:'subtraction',add20:'addition',sub20:'subtraction',numberBonds:'addition',add100:'addition',sub100:'subtraction',sub100:'subtraction',skip:'addition',add3:'addition',sub3:'subtraction',mult:'multiplication',div:'division',money:'subtraction',add4:'addition',sub4:'subtraction',area:'multiplication',mult2:'multiplication',div2:'division',factors:'multiplication',frac:'addition',dec:'addition',percent:'multiplication',volume:'multiplication',expr:'addition',integers:'addition',ratio:'division',equations:'addition',rational:'addition',geometry:'multiplication',linear:'addition',functions:'addition',exponents:'multiplication',slope:'division',pythagorean:'multiplication'};
+  if($("op"))$("op").value=opMap[t]||"addition";
+  updateRangeControls();
+}
+function int(lo,hi){return randIn(lo,hi)}
+function gradeQuestion(grade,topic,ed){
+  let a,b,ans,text,o="addition";
+  const q=(text,ans,op="addition",aa=0,bb=0)=>({text,ans,o:op,a:aa,b:bb,grade,topic});
+  if(grade==='prek'){
+    if(topic==='counting'){a=int(0,10);return q('What number comes after '+a+'?',a+1);}
+    if(topic==='compare'){a=int(0,10);b=int(0,10);return q('Which number is greater: '+a+' or '+b+'?',Math.max(a,b));}
+    if(topic==='sub5'){a=int(0,5);b=int(0,a);return q(a+' − '+b+' =',a-b,'subtraction',a,b);}
+    a=int(0,5);b=int(0,5-a);return q(a+' + '+b+' =',a+b,'addition',a,b);
+  }
+  if(grade==='k'){
+    if(topic==='numberBonds'){a=int(0,10);return q(a+' + ___ = 10',10-a,'addition',a,10-a);}
+    const hi=topic==='add20'||topic==='sub20'?20:10; o=topic.startsWith('sub')?'subtraction':'addition'; a=int(0,hi);b=int(0,hi);if(o==='subtraction'&&b>a)[a,b]=[b,a];return q(a+(o==='subtraction'?' − ':' + ')+b+' =',o==='subtraction'?a-b:a+b,o,a,b);
+  }
+  if(grade==='1'){
+    if(topic==='skip'){a=int(1,10);b=int(2,10);return q('Count by '+b+'s: '+a+' + '+b+' =',a+b,'addition',a,b);}
+    const hi=topic.includes('100')?100:20;o=topic.startsWith('sub')?'subtraction':'addition';a=int(0,hi);b=int(0,hi);if(o==='subtraction'&&b>a)[a,b]=[b,a];return q(a+(o==='subtraction'?' − ':' + ')+b+' =',o==='subtraction'?a-b:a+b,o,a,b);
+  }
+  if(grade==='2'){
+    if(topic==='mult'||topic==='div'){o=topic==='mult'?'multiplication':'division';const d=int(1,12),m=int(0,12);if(o==='mult')return q(d+' × '+m+' =',d*m,o,d,m);return q((d*m)+' ÷ '+d+' =',m,o,d*m,d);}
+    if(topic==='money'){a=int(1,20);b=int(1,a);return q('$'+a+'.00 − $'+b+'.00 = $',a-b,'subtraction',a,b);}
+    const hi=999;o=topic==='sub3'?'subtraction':'addition';a=int(100,hi);b=int(10,hi);if(o==='subtraction'&&b>a)[a,b]=[b,a];return q(a+(o==='subtraction'?' − ':' + ')+b+' =',o==='subtraction'?a-b:a+b,o,a,b);
+  }
+  if(grade==='3'){
+    if(topic==='mult'||topic==='div'){o=topic==='mult'?'multiplication':'division';const d=int(2,12),m=int(2,12);if(o==='mult')return q(d+' × '+m+' =',d*m,o,d,m);return q((d*m)+' ÷ '+d+' =',m,o,d*m,d);}
+    if(topic==='area'){a=int(2,12);b=int(2,12);return q('Rectangle area: '+a+' × '+b+' =',a*b,'multiplication',a,b);}
+    o=topic==='sub4'?'subtraction':'addition';a=int(1000,9999);b=int(100,9999);if(o==='subtraction'&&b>a)[a,b]=[b,a];return q(a+(o==='subtraction'?' − ':' + ')+b+' =',o==='subtraction'?a-b:a+b,o,a,b);
+  }
+  if(grade==='4'){
+    if(topic==='mult2'){a=int(10,999);b=int(2,99);return q(a+' × '+b+' =',a*b,'multiplication',a,b);}
+    if(topic==='div2'){b=int(2,25);ans=int(2,40);return q((b*ans)+' ÷ '+b+' =',ans,'division',b*ans,b);}
+    if(topic==='factors'){const d=int(2,12),m=int(2,12);return q((d*m)+' ÷ '+d+' =',m,'division',d*m,d);}
+    if(topic==='dec'){a=int(10,999)/10;b=int(10,999)/10;return q(a.toFixed(1)+' + '+b.toFixed(1)+' =',+(a+b).toFixed(1),'addition',a,b);}
+    a=int(1,9);b=int(2,9);return q(a+'/'+b+' as a decimal (round to 2 places) =',+(a/b).toFixed(2),'division',a,b);
+  }
+  if(grade==='5'){
+    if(topic==='dec'){a=int(10,999)/100;b=int(10,999)/100;return q(a.toFixed(2)+' + '+b.toFixed(2)+' =',+(a+b).toFixed(2),'addition',a,b);}
+    if(topic==='percent'){a=int(1,9)*10;b=int(1,20);return q(a+'% of '+b*10+' =',a*b,'multiplication',a,b*10);}
+    if(topic==='volume'){a=int(2,15);b=int(2,15);return q('Box base '+a+' × '+b+', height 2. Volume =',a*b*2,'multiplication',a,b);}
+    if(topic==='expr'){a=int(2,12);b=int(2,12);return q('Evaluate '+a+' × 2 + '+b+' =',a*2+b,'multiplication',a,b);}
+    a=int(1,4);b=int(1,4);return q(a+'/4 + '+b+'/4 =',+(a+b)/4,'addition',a,b);
+  }
+  if(grade==='6'){
+    if(topic==='integers'){a=int(-20,20);b=int(-20,20);return q(a+' + ('+b+') =',a+b,'addition',a,b);}
+    if(topic==='ratio'){a=int(1,12);b=int(1,12);return q('If '+a+' : '+b+', then '+a+' ÷ '+b+' =',+(a/b).toFixed(2),'division',a,b);}
+    if(topic==='percent'){a=int(10,90);b=int(10,100);return q(a+'% of '+b+' =',+(a*b/100).toFixed(2),'multiplication',a,b);}
+    if(topic==='equations'){a=int(1,20);b=int(1,30);return q('x + '+a+' = '+(a+b)+'; x =',b,'addition',a,b);}
+    if(topic==='expr'){a=int(1,12);b=int(1,12);return q('3 × '+a+' + '+b+' =',3*a+b,'multiplication',a,b);}
+    a=int(1,5);b=int(1,5);return q(a+'/3 + '+b+'/3 =',+(a+b)/3,'addition',a,b);
+  }
+  if(grade==='7'){
+    if(topic==='percent'){a=int(10,90);b=int(10,200);return q(a+'% of '+b+' =',+(a*b/100).toFixed(2),'multiplication',a,b);}
+    if(topic==='ratio'){a=int(1,12);b=int(1,12);const k=int(2,8);return q(a+' : '+b+' scaled by '+k+': first value =',a*k,'multiplication',a,k);}
+    if(topic==='equations'){a=int(1,12);b=int(1,20);const x=int(1,20);return q(a+'x + '+b+' = '+(a*x+b)+'; x =',x,'addition',a,b);}
+    if(topic==='geometry'){a=int(2,20);return q('Triangle base '+a+' and height '+(a+2)+': base × height =',a*(a+2),'multiplication',a,a+2);}
+    a=int(-20,20);b=int(-20,20);return q(a+' − ('+b+') =',a-b,'subtraction',a,b);
+  }
+  if(grade==='8'){
+    if(topic==='linear'){a=int(1,12);b=int(-10,10);const x=int(-10,10);return q(a+'x + '+b+' = '+(a*x+b)+'; x =',x,'addition',a,b);}
+    if(topic==='functions'){a=int(1,9);b=int(-10,10);const x=int(-5,5);return q('f(x) = '+a+'x + '+b+'; f('+x+') =',a*x+b,'addition',a,b);}
+    if(topic==='exponents'){a=int(2,10);b=int(2,4);return q(a+'^'+b+' =',Math.pow(a,b),'multiplication',a,b);}
+    if(topic==='slope'){const rise=int(-10,10),run=int(1,10);return q('Slope = rise '+rise+' ÷ run '+run+' =',+(rise/run).toFixed(2),'division',rise,run);}
+    const a=int(3,15),b=int(4,15);return q('Pythagorean: '+a+'² + '+b+'² = c²; c² =',a*a+b*b,'addition',a,b);
+  }
+  return make('addition',ed);
+}
 function make(o,ed){
-if(o==="mixed")o=["addition","subtraction","multiplication","division"][R(4)];
-let a,b,ans,range=$("addSubRange")?.value||"single";
-if(o==="addition"||o==="subtraction"){
-let hi=range==="single"?9:20;
-if(range==="mixed")hi=R(2)?9:20;
-a=randIn(0,hi); b=randIn(0,hi);
-if(ed==="regroup"&&o==="addition"){
-let tries=0;
-while(a+b<10 && tries++<20){a=randIn(0,hi);b=randIn(0,hi)}
-}
-if(o==="subtraction"&&b>a){[a,b]=[b,a]}
-ans=o==="addition"?a+b:a-b;
-}else if(o==="multiplication"){
-const tables=selectedMDTables();
-const usable=tables.length?tables:[0,1,2,3,4,5,6,7,8,9,10,11,12];
-const table=usable[R(usable.length)];
-const other=randIn(0,12);
-// The selected table is always one of the two factors.
-if(R(2)){a=table;b=other}else{a=other;b=table}
-ans=a*b;
-}else{
-const tables=selectedMDTables();
-const usable=tables.filter(v=>v!==0);
-const divisor=(usable.length?usable:[1])[R((usable.length?usable:[1]).length)];
-// Avoid division by zero while retaining table 0 as a valid
-// multiplication choice. For division, a zero divisor is skipped.
-const d=divisor===0?1:divisor;
-const quotient=randIn(0,12);
-a=d*quotient;b=d;ans=quotient;
-}
-return{a,b,ans,o}
+  const g=$("grade")?.value;
+  const f=$("practiceFocus")?.value;
+  if(g&&GRADE_TOPICS[g]&&f)return gradeQuestion(g,f,ed);
+  if(o==="mixed")o=["addition","subtraction","multiplication","division"][R(4)];
+  let a,b,ans,range=$("addSubRange")?.value||"single";
+  if(o==="addition"||o==="subtraction"){let hi=range==="single"?9:20;if(range==="mixed")hi=R(2)?9:20;a=randIn(0,hi);b=randIn(0,hi);if(ed==="regroup"&&o==="addition"){let tries=0;while(a+b<10&&tries++<20){a=randIn(0,hi);b=randIn(0,hi)}}if(o==="subtraction"&&b>a)[a,b]=[b,a];ans=o==="addition"?a+b:a-b;}else if(o==="multiplication"){const tables=selectedMDTables();const usable=tables.length?tables:[0,1,2,3,4,5,6,7,8,9,10,11,12];const table=usable[R(usable.length)],other=randIn(0,12);if(R(2)){a=table;b=other}else{a=other;b=table}ans=a*b;}else{const tables=selectedMDTables();const usable=tables.filter(v=>v!==0);const divisor=(usable.length?usable:[1])[R((usable.length?usable:[1]).length)];const d=divisor===0?1:divisor;const quotient=randIn(0,12);a=d*quotient;b=d;ans=quotient;}
+  return{a,b,ans,o};
 }
 
 function syncTimerOptions(preferred){
@@ -53,7 +123,7 @@ sel.value=String(value);
 left=value*60;
 updateTimer();
 }
-function newEdition(){if(started)return;clearInterval(tid);tid=null;done=false;clearActiveSession(currentUser?.id||"guest");syncTimerOptions($("mins").value);left=+$("mins").value*60;updateTimer();qs=Array.from({length:+$("count").value},()=>make($("op").value,$("edition").value));qs.sort(()=>Math.random()-.5);render();$("result").classList.add("hidden")}
+function newEdition(){if(started)return;clearInterval(tid);tid=null;done=false;clearActiveSession(currentUser?.id||"guest");syncGradeControls();syncTimerOptions($("mins").value);left=+$("mins").value*60;updateTimer();qs=Array.from({length:+$("count").value},()=>make($("op").value,$("edition").value));qs.sort(()=>Math.random()-.5);render();$("result").classList.add("hidden")}
 
 function activeSessionKey(userId){
 return "poorviActiveTest:"+String(userId||"guest");
@@ -84,6 +154,8 @@ userId:currentUser.id,
 userName:currentUser.name,
 startedAt:begin,
 expiresAt:begin+(+$("mins").value*60000),
+grade:selectedGrade(),
+practiceFocus:selectedFocus(),
 operation:$("op").value,
 edition:$("edition").value,
 range:$("addSubRange").value,
@@ -115,6 +187,8 @@ clearActiveSession();return;
 }
 
 // Restore the exact worksheet/settings before rendering.
+if($("grade"))$("grade").value=s.grade||$("grade").value;
+if($("practiceFocus")){syncGradeControls();$("practiceFocus").value=s.practiceFocus||$("practiceFocus").value;}
 $("op").value=s.operation||$("op").value;
 if($("edition"))$("edition").value=s.edition||$("edition").value;
 if($("addSubRange"))$("addSubRange").value=s.range||$("addSubRange").value;
@@ -178,7 +252,7 @@ finish(true,false);
 
 window.scrollTo(0,0);
 }
-function render(){let t=$("op").value==="mixed"?"Mixed Math Practice":$("op").value[0].toUpperCase()+$("op").value.slice(1)+" Practice";$("sheet").innerHTML='<div class="head"><div class="title">'+t+'</div><div class="info"><div>Name: <span class="line"></span></div><div>Date: <span class="line"></span></div><div>Score: <span class="line"></span> / '+qs.length+'</div></div></div>';let g=document.createElement("div");g.className="grid";qs.forEach((q,i)=>{let c=document.createElement("div");c.className="cell";let entry=$("answerMode").value==="pencil"?'<canvas class="pad" width="160" height="100" data-i="'+i+'"></canvas>':'<input class="ans" inputmode="numeric" data-i="'+i+'">';c.innerHTML='<div><div class="q">'+q.a+' '+sym(q.o)+' '+q.b+' = '+entry+'</div></div>';g.appendChild(c)});$("sheet").appendChild(g);
+function render(){const grade=selectedGrade(),focus=selectedFocus();const t=topicLabel(grade,focus)||"Math Practice";$("sheet").innerHTML='<div class="head"><div class="title">'+t+' • '+(grade==='prek'?'Pre-K':grade==='k'?'Kindergarten':'Grade '+grade)+'</div><div class="info"><div>Name: <span class="line"></span></div><div>Date: <span class="line"></span></div><div>Score: <span class="line"></span> / '+qs.length+'</div></div></div>';let g=document.createElement("div");g.className="grid";qs.forEach((q,i)=>{let c=document.createElement("div");c.className="cell";let entry=$("answerMode").value==="pencil"?'<canvas class="pad" width="160" height="100" data-i="'+i+'"></canvas>':'<input class="ans" inputmode="decimal" data-i="'+i+'">';const problem=q.text||((q.a+' '+sym(q.o)+' '+q.b+' =').trim());c.innerHTML='<div><div class="q">'+problem+' '+entry+'</div></div>';g.appendChild(c)});$("sheet").appendChild(g);
 if($("answerMode").value==="pencil")setupPencil();
 document.querySelectorAll(".ans").forEach(e=>e.addEventListener("input",persistActiveSession));
 requestAnimationFrame(fitGrid)}
@@ -197,17 +271,17 @@ const answers=[];
 if($("answerMode").value==="pencil"){
 document.querySelectorAll(".pad").forEach((c,i)=>{
 const filled=!canvasIsBlank(c);
-answers.push({i,problem:qs[i].a+" "+sym(qs[i].o)+" "+qs[i].b,ans:qs[i].ans,image:c.toDataURL("image/png"),ocr:"",filled,status:filled?"correct":"not_answered"});
+answers.push({i,problem:(qs[i].text||((qs[i].a+" "+sym(qs[i].o)+" "+qs[i].b+" =").trim())),ans:qs[i].ans,image:c.toDataURL("image/png"),ocr:"",filled,status:filled?"correct":"not_answered"});
 });
 }else{
 document.querySelectorAll(".ans").forEach((e,i)=>{
 const v=e.value.trim();
-answers.push({i,problem:qs[i].a+" "+sym(qs[i].o)+" "+qs[i].b,ans:qs[i].ans,image:"",ocr:v,filled:v!=="",status:v!==""?"correct":"not_answered"});
+answers.push({i,problem:(qs[i].text||((qs[i].a+" "+sym(qs[i].o)+" "+qs[i].b+" =").trim())),ans:qs[i].ans,image:"",ocr:v,filled:v!=="",status:v!==""?"correct":"not_answered"});
 });
 }
 const ownerId=currentUser?.id||sessionStorage.getItem("poorviCurrentUser")||"guest";
 const ownerName=currentUser?.name||sessionStorage.getItem("poorviDisplayName")||({guest:"Guest",poorvi:"Poorvi Dondeti",mahiram:"Mahiram Dondeti"}[ownerId]||"Guest");
-return {id:"sub_"+Date.now(),date:key(),created:Date.now(),userId:ownerId,userName:ownerName,operation:$("op").value,range:$("op").value==="addition"||$("op").value==="subtraction"?$("addSubRange").value:"0-12",total:qs.length,elapsed:elapsed(),answers};
+return {id:"sub_"+Date.now(),date:key(),created:Date.now(),userId:ownerId,userName:ownerName,grade:selectedGrade(),practiceFocus:selectedFocus(),operation:$("op").value,range:$("op").value==="addition"||$("op").value==="subtraction"?$("addSubRange").value:"0-12",total:qs.length,elapsed:elapsed(),answers};
 }
 function pendingSubs(){return JSON.parse(localStorage.getItem("poorviPendingSubmissions")||"[]")}
 async function savePendingSubmission(s){
@@ -971,6 +1045,12 @@ $("parentReview").scrollIntoView({behavior:"smooth"});
 });
 }
 
+function favoritesKey(){return "kmtStudentFavorites:"+String(currentUser?.id||"guest")}
+function loadFavorites(){try{return JSON.parse(localStorage.getItem(favoritesKey())||"[]")}catch(e){return []}}
+function saveFavorites(a){try{localStorage.setItem(favoritesKey(),JSON.stringify(a.slice(-20)))}catch(e){}}
+function renderFavorites(){const box=$("favoritesList");if(!box)return;const a=loadFavorites();if(!a.length){box.innerHTML='<div class="muted">No favorites yet. Choose a grade and practice focus, then click ⭐ Save to Favorites.</div>';return}box.innerHTML=a.slice().reverse().map((f,i)=>'<div class="favoriteRow" style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;border-top:1px solid var(--line);flex-wrap:wrap"><div><b>⭐ '+f.name+'</b><div class="muted">'+f.count+' questions • '+f.answerMode+' • '+f.minutes+' min</div></div><div class="actions"><button class="miniBtn" data-fav-load="'+i+'">Use</button><button class="miniBtn" data-fav-del="'+i+'">Delete</button></div></div>').join("");box.querySelectorAll("[data-fav-load]").forEach(b=>b.onclick=()=>{const x=a.slice().reverse()[+b.dataset.favLoad];if(!x)return;$("grade").value=x.grade;syncGradeControls();$("practiceFocus").value=x.practiceFocus;$("op").value=x.operation;$("count").value=String(x.count);$("answerMode").value=x.answerMode;syncTimerOptions(x.minutes);$("edition").value=x.edition||"random";newEdition();});box.querySelectorAll("[data-fav-del]").forEach(b=>b.onclick=()=>{const rev=a.slice().reverse();rev.splice(+b.dataset.favDel,1);saveFavorites(rev.reverse());renderFavorites();});}
+function saveCurrentFavorite(){const f={name:topicLabel(selectedGrade(),selectedFocus())+' • '+(selectedGrade()==='prek'?'Pre-K':selectedGrade()==='k'?'Kindergarten':'Grade '+selectedGrade()),grade:selectedGrade(),practiceFocus:selectedFocus(),operation:$("op").value,count:+$("count").value,answerMode:$("answerMode").value,minutes:+$("mins").value,edition:$("edition").value};const a=loadFavorites();a.push(f);saveFavorites(a);renderFavorites();alert('Saved to Student Favorites.');}
+
 function updateRangeControls(){
 const o=$("op").value;
 const addSub=(o==="addition"||o==="subtraction");
@@ -986,6 +1066,10 @@ $("op").addEventListener("change",()=>{updateRangeControls();if(!started && ($("
 $("mdSelectAll").onclick=()=>{document.querySelectorAll(".mdTable").forEach(cb=>cb.checked=true);updateRangeControls();if(!started)newEdition()};
 $("mdClearAll").onclick=()=>{document.querySelectorAll(".mdTable").forEach(cb=>cb.checked=false);updateRangeControls();};
 
+$("grade")?.addEventListener("change",()=>{if(!started){syncGradeControls();newEdition();}});
+$("practiceFocus")?.addEventListener("change",()=>{if(!started){syncGradeControls();newEdition();}});
+$("saveFavoriteBtn")?.addEventListener("click",saveCurrentFavorite);
+$("refreshFavoritesBtn")?.addEventListener("click",renderFavorites);
 $("addSubRange").addEventListener("change",()=>{if(!started)newEdition()});
 document.querySelectorAll(".mdTable").forEach(cb=>cb.addEventListener("change",function(){
 updateRangeControls();
@@ -1014,7 +1098,7 @@ $("adminRefreshBtn").onclick=renderAdminSubmissionQueue;
 $("saveReviewBtn").onclick=saveCurrentReview;$("switchUserBtn").onclick=switchUser;$("usersBtn").onclick=renderUsers;$("addUserBtn").onclick=addUser;$("closeUsersBtn").onclick=()=>$("userManagement").classList.add("hidden");const authenticatedUser=loadCurrentUser(); if(authenticatedUser){const welcome=document.getElementById("welcomeTitle");if(welcome)welcome.textContent="Welcome to "+currentUser.name;if(currentUser&&currentUser.role==="admin") renderAdminUserOverview();showTracker("week");renderWeek();renderMonthly();renderYearly();}$("manageHistoryBtn").onclick=renderHistoryManager;$("voidReviewBtn").onclick=voidCurrentReview;$("closeReviewBtn").onclick=()=>{$("parentReview").classList.add("hidden")};$("reviewBtn").onclick=()=>{
 if(pendingSubmission && reviewUnlocked){renderReview(pendingSubmission);return}
 openReviewWithPin();
-};$("answerMode").onchange=()=>{if(!started)newEdition()};window.onresize=fitGrid;window.onorientationchange=()=>setTimeout(fitGrid,150);updateRangeControls();newEdition();renderWeek();fitGrid();
+};$("answerMode").onchange=()=>{if(!started)newEdition()};window.onresize=fitGrid;window.onorientationchange=()=>setTimeout(fitGrid,150);syncGradeControls();updateRangeControls();renderFavorites();newEdition();renderWeek();fitGrid();
 
 /* v1.0: user identity is controlled only by login.html */
 (function(){

@@ -9,7 +9,7 @@
  --shadow:0 10px 35px rgba(16,24,40,.07);--radius:20px;
 }
 *{box-sizing:border-box}
-/* Production 4.0.1 — prevent accidental long-press/text selection on the learning UI. */
+/* Production 4.2.0 — prevent accidental long-press/text selection on the learning UI. */
 html,body,.page,button,.btn,.navtabs,.card,.eng-card,.phon-card,.stat,.question,.section-title,.muted,.eyebrow,.ruleNum,.phon-big,.phon-sounds,.phon-examples,.phon-teacher-note,.phon-summary,.english-rule,.footer,a {
   -webkit-user-select:none;
   user-select:none;
@@ -101,10 +101,10 @@ select,input{width:100%;padding:12px;border:1px solid #cdd6e2;border-radius:12px
 .hostedBy{color:#7b8797;text-decoration:none;font-weight:700}.hostedBy:hover{text-decoration:underline;color:#2563eb}.hostedBy:focus-visible{outline:2px solid #2563eb;outline-offset:3px;border-radius:4px}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-<script src="./app-config.js"></script><script src="./cloud.js?v=4.0.0"></script>
+<script src="./app-config.js"></script><script src="./cloud.js?v=4.2.0"></script>
 
 <script>
-// Production 4.0.1 — stop accidental long-press text selection/copy on the UI.
+// Production 4.2.0 — stop accidental long-press text selection/copy on the UI.
 document.addEventListener('selectstart',function(e){
   if(!e.target.closest('input,textarea,select,[contenteditable="true"],[contenteditable=""]')) e.preventDefault();
 },true);
@@ -112,7 +112,7 @@ document.addEventListener('selectstart',function(e){
 </head><body>
 <div class="page">
 <header class="topbar">
-  <div><div class="eyebrow">KIDS MATH TEST • Production 4.0.1</div><div id="welcomeTitle">Welcome</div><div class="muted">Your private learning dashboard</div></div>
+  <div><div class="eyebrow">KIDS MATH TEST • Production 4.2.0</div><div id="welcomeTitle">Welcome</div><div class="muted">Your private learning dashboard</div></div>
   <div class="top-actions">
     <button class="btn secondary" id="switchUserBtn">⇄ Switch User</button>
     <a class="btn secondary" href="admin.html">👑 Admin</a>
@@ -131,6 +131,8 @@ document.addEventListener('selectstart',function(e){
  <div class="section-title">Create a Worksheet</div>
  <div class="muted">Set the test before giving the device to your child.</div>
  <div class="controls">
+  <div><label>Grade</label><select id="grade"><option value="prek">Pre-K</option><option value="k">Kindergarten</option><option value="1">Grade 1</option><option value="2">Grade 2</option><option value="3">Grade 3</option><option value="4">Grade 4</option><option value="5">Grade 5</option><option value="6">Grade 6</option><option value="7">Grade 7</option><option value="8">Grade 8</option></select></div>
+  <div><label>Practice Focus</label><select id="practiceFocus"></select></div>
   <div><label>Operation</label><select id="op"><option value="addition">Addition</option><option value="subtraction">Subtraction</option><option value="multiplication">Multiplication</option><option value="division">Division</option><option value="mixed">Mixed</option></select></div>
   <div><label>Questions</label><select id="count"><option value="100" selected>100</option><option value="50">50</option></select></div>
   <div><label>Answer Method</label><select id="answerMode"><option value="pencil">✏️ Apple Pencil</option><option value="keyboard">⌨️ Keyboard</option></select></div>
@@ -147,7 +149,8 @@ document.addEventListener('selectstart',function(e){
    </div>
   </div>
  </div>
- <div class="actions" style="margin-top:14px"><button class="btn primary" id="newBtn">✨ Create Edition</button><button class="btn danger" id="clearBtn">Clear History</button></div>
+ <div class="actions" style="margin-top:14px"><button class="btn primary" id="newBtn">✨ Create Edition</button><button class="btn secondary" id="saveFavoriteBtn">⭐ Save to Favorites</button><button class="btn danger" id="clearBtn">Clear History</button></div>
+ <section class="card" id="favoritesCard" style="margin:14px 0 0;background:#fbfcff"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><div><div class="section-title">⭐ Student Favorites</div><div class="muted">Save favorite grade and practice combinations for quick reuse.</div></div><button class="miniBtn" id="refreshFavoritesBtn" type="button">↻ Refresh</button></div><div id="favoritesList" style="margin-top:10px"></div></section>
 </section>
 
 <section class="card">
