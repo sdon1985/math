@@ -89,7 +89,7 @@
         console.error('Student mapping repair failed:',repairError);
         await logout();
         const detail=String(repairError?.message||repairError||'');
-        if(/function .*repair_student_mapping.*does not exist|PGRST202/i.test(detail))throw Error('Student profile repair is not enabled yet. Run the Production 4.2.0 Student Mapping Repair SQL in Supabase, then try Student Login again.');
+        if(/function .*repair_student_mapping.*does not exist|PGRST202/i.test(detail))throw Error('Student profile repair is not enabled yet. Run the Production 4.1.0 Student Mapping Repair SQL in Supabase, then try Student Login again.');
         throw Error('Student profile synchronization failed: '+(detail||'unknown database error'));
       }
     }
@@ -110,7 +110,7 @@
         console.error('Student profile repair failed:',profileError);
       }
     }
-    if(!p[0])throw Error('Your email is confirmed, but the Student profile is not available. Please try again after the Production 4.2.0 database migration is installed.');
+    if(!p[0])throw Error('Your email is confirmed, but the Student profile is not available. Please try again after the Production 4.1.0 database migration is installed.');
     S.user={authId:d.user.id,id:p[0].id,name:p[0].display_name,role:p[0].role,email:String(email)};save();if(S.user.role==='user')await syncStudentPin(pin);return S.user;
   }
   async function loginWithEmail(email,pin){
@@ -162,7 +162,7 @@
       await rpc('register_parent',{p_auth_user_id:d.user.id,p_display_name:displayName,p_email:d.user.email||email});
       p=await api('/rest/v1/parent_users?select=auth_user_id,display_name,email&auth_user_id=eq.'+encodeURIComponent(d.user.id));
     }
-    if(!p[0]){await logout();throw Error('Parent profile could not be created. Run the Production 4.2.0 parent SQL migration in Supabase.');}
+    if(!p[0]){await logout();throw Error('Parent profile could not be created. Run the Production 4.1.0 parent SQL migration in Supabase.');}
     S.user={authId:d.user.id,id:d.user.id,name:p[0].display_name,role:'parent',email:p[0].email||email};save();return S.user;
   }
 
@@ -229,7 +229,7 @@
       const name=au.user_metadata?.display_name||au.user_metadata?.name||'Parent';
       await rpc('register_parent',{p_auth_user_id:au.id,p_display_name:name,p_email:au.email||''});
       const again=await api('/rest/v1/parent_users?select=auth_user_id,display_name,email&auth_user_id=eq.'+encodeURIComponent(au.id));
-      if(!again[0])throw Error('Parent profile is not available. Run the Production 4.2.0 database migration.');
+      if(!again[0])throw Error('Parent profile is not available. Run the Production 4.1.0 database migration.');
       S.user={authId:au.id,id:au.id,name:again[0].display_name,role:'parent',email:again[0].email};save();
       return S.user;
     }
@@ -426,11 +426,11 @@
       });
     }catch(e){
       console.error('Registration mapping:',e);
-      throw Error('Email confirmed, but the Student profile could not be created. Please run the Production 4.2.0 database migration, then open the confirmation link again.');
+      throw Error('Email confirmed, but the Student profile could not be created. Please run the Production 4.1.0 database migration, then open the confirmation link again.');
     }
 
     const map=await api('/rest/v1/auth_users?select=app_user_id&auth_user_id=eq.'+encodeURIComponent(me.id));
-    if(!map[0])throw Error('Email confirmed, but the Student account mapping was not created. Please run the Production 4.2.0 database migration.');
+    if(!map[0])throw Error('Email confirmed, but the Student account mapping was not created. Please run the Production 4.1.0 database migration.');
     const profile=await api('/rest/v1/kids_users?select=id,display_name,role&id=eq.'+encodeURIComponent(map[0].app_user_id));
     if(!profile[0])throw Error('Email confirmed, but the Student profile was not found. Please try again.');
 
