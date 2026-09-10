@@ -51,13 +51,13 @@ document.addEventListener('selectstart',function(e){
 
 <section class="card">
  <h2>👧 My Enrolled Students</h2>
- <div class="muted">Only students successfully enrolled by this parent are shown here.</div>
+ <div class="muted">Only students successfully enrolled by this parent are shown here. Subscribed students send their correction sheets here for parent review.</div>
  <div id="students"><div class="empty">Loading your enrolled students…</div></div>
 </section>
 
-<section class="card hidden" id="reviewCard"><div class="top"><div><h2>📝 Review English Worksheet</h2><div id="reviewMeta" class="muted"></div></div><button id="closeReview" class="btn">Close</button></div><div id="reviewItems" style="margin-top:12px"></div><button id="saveReview" class="btn primary" style="margin-top:14px">✓ Save Review</button></section>
+<section class="card hidden" id="reviewCard"><div class="top"><div><h2>📝 Review Student Worksheet</h2><div id="reviewMeta" class="muted"></div></div><button id="closeReview" class="btn">Close</button></div><div id="reviewItems" style="margin-top:12px"></div><button id="saveReview" class="btn primary" style="margin-top:14px">✓ Save Review</button></section>
 
-<div class="footer muted" style="text-align:center;padding:20px">Production 3.9.1 • Supabase Cloud • Parent Portal</div>
+<div class="footer muted" style="text-align:center;padding:20px">Production 3.9.2 • Supabase Cloud • Parent Portal</div>
 </div>
 <script>
 (async function(){
@@ -97,8 +97,7 @@ async function load(){
           const correct=answers.filter(a=>a.status==='correct').length;
           const total=Number(w.total||answers.length||0);
           const score=['approved','reviewed','complete'].includes(st)?correct+'/'+total:'Waiting for review';
-          const isEnglish=String(w.operation||'').toLowerCase().includes('english');
-          const action=isEnglish&&['pending','under_review'].includes(st)?'<button class="btn primary reviewBtn" data-review="'+esc(w.id)+'">📝 Review</button>':isEnglish&&['approved','reviewed','complete'].includes(st)?'<button class="btn" data-review="'+esc(w.id)+'">View Review</button>':'';
+          const action=['pending','under_review'].includes(st)?'<button class="btn primary reviewBtn" data-review="'+esc(w.id)+'">📝 Review</button>':['approved','reviewed','complete'].includes(st)?'<button class="btn" data-review="'+esc(w.id)+'">View Review</button>':'';
           return '<div class="row" style="border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:8px"><div><b>'+esc(w.operation||'Worksheet')+'</b><div class="muted">'+new Date(w.submitted_at).toLocaleString()+' • '+esc(label)+'</div></div><div style="display:flex;gap:8px;align-items:center"><b>'+esc(score)+'</b>'+action+'</div></div>';
         }).join('');
       }
@@ -114,8 +113,17 @@ async function openReview(id){
   if(!row)throw Error('Worksheet was not found for your enrolled student.');
   const sub=row.submission||{},answers=Array.isArray(sub.answers)?sub.answers:[];
   const approved=['approved','reviewed','complete'].includes(String(row.status||'').toLowerCase());
+  function mathAnswer(problem){
+    const t=String(problem||'').replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-').trim();
+    const m=t.match(/(-?\d+(?:\.\d+)?)\s*([+\-*\/])\s*(-?\d+(?:\.\d+)?)/);
+    if(!m)return '';
+    const x=Number(m[1]),y=Number(m[3]);
+    const v=m[2]==='+'?x+y:m[2]==='-'?x-y:m[2]==='*'?x*y:y?x/y:'';
+    return v===''?'':(Number.isInteger(v)?String(v):String(Number(v.toFixed(6))));
+  }
+  answers.forEach(a=>{if(!String(a.ans??'').trim() && !String(row.operation||'').toLowerCase().includes('english')) a.ans=mathAnswer(a.problem);});
   $("reviewCard").classList.remove('hidden');$("reviewMeta").textContent=(row.user_name||row.user_id)+' • '+new Date(row.submitted_at).toLocaleString()+' • '+answers.length+' questions';
-  $("reviewItems").innerHTML=answers.map(a=>'<div class="reviewItem"><div><b>#'+(a.i+1)+' • Rule '+(a.rule||'')+'</b><div>'+esc(a.problem||'')+'</div><div class="muted">Expected: <b>'+esc(a.ans||'')+'</b> • Child: '+esc(a.ocr||'handwriting')+'</div></div>'+(a.image?'<img src="'+a.image+'">':'')+'<div class="reviewBtns"><button data-rs="correct" class="'+(a.status==='correct'?'selC':'')+'">✓ Correct</button><button data-rs="wrong" class="'+(a.status==='wrong'?'selW':'')+'">✗ Wrong</button><button data-rs="not_answered" class="'+(a.status==='not_answered'?'selN':'')+'">— Not Answered</button></div></div>').join('');
+  $("reviewItems").innerHTML=answers.map(a=>'<div class="reviewItem"><div><b>#'+(a.i+1)+' • '+esc(a.problem||'')+' =</b><div class="muted">Correct: <b>'+esc(a.ans||'')+'</b> • Student: '+esc(a.ocr||'handwriting')+'</div></div>'+(a.image?'<img src="'+a.image+'" alt="Student handwritten answer">':'<div class="muted">No handwriting</div>')+'<div class="reviewBtns"><button data-rs="correct" class="'+(a.status==='correct'?'selC':'')+'">✓ Correct</button><button data-rs="wrong" class="'+(a.status==='wrong'?'selW':'')+'">✗ Wrong</button><button data-rs="not_answered" class="'+(a.status==='not_answered'?'selN':'')+'">— Not Answered</button></div></div>').join('');
   $("reviewCard").scrollIntoView({behavior:'smooth'});
   if(approved){$("saveReview").disabled=true;$("saveReview").textContent='✓ Already Approved';return;}
   $("saveReview").disabled=false;$("saveReview").textContent='✓ Save Review';
@@ -136,7 +144,7 @@ $("enroll").onclick=async()=>{
  catch(e){console.error(e);$("enrollMsg").className="error";$("enrollMsg").textContent=e.message||"Student credentials could not be verified."}
  finally{b.disabled=false;b.textContent="Verify & Enroll";}
 };
-if(guard())load().then(()=>{if(new URLSearchParams(location.search).get("review")==="english"){const b=document.querySelector("[data-review]");if(b)b.click();}});
+if(guard())load().then(()=>{if(new URLSearchParams(location.search).get("review")==="true"){const b=document.querySelector("[data-review]");if(b)b.click();}});
 })();
 </script>
 </body></html>

@@ -157,8 +157,8 @@ document.addEventListener('selectstart',function(e){
 </script>
 </head><body><div class="wrap">
 <header class="header"><div><div style="font-size:12px;font-weight:900;letter-spacing:.12em;color:#64748b">STUDENT PRACTICE SHEETS • Production 3.9.2</div><h1>👑 Parent Dashboard</h1><div class="muted">Cloud worksheets, reviews and progress</div></div><div class="actions"><a class="btn" href="index.html">👤 User Page</a><a class="btn" href="login.html">🔐 Switch Login</a><button id="refresh" class="btn">↻ Refresh</button></div></header>
-<section class="card"><div style="font-size:20px;font-weight:900">⏳ Submitted — Under Review</div><div class="muted">New worksheets appear here immediately, including timer auto-submissions.</div><div id="pending"></div></section>
-<section class="card"><div style="font-size:20px;font-weight:900">📊 User Progress</div><div class="muted">Cloud data grouped by user.</div><div id="users"></div></section><section class="card" id="accountCard"><div style="font-size:20px;font-weight:900">🗑️ Student Account Management</div><div class="muted">Permanently delete one student, including worksheets, progress, mapping and Supabase Auth account.</div><div class="userProgressPicker" style="margin-top:10px"><label><b>Student:</b><select id="deleteStudentSelect"><option value="">Select a student…</option></select><button id="deleteStudentBtn" class="btn danger" style="margin-left:10px" disabled>🗑️ Delete Student Account</button></label><div class="muted" style="margin-top:8px;font-size:12px">This is permanent. The same email can be registered again; the application user ID is recreated from the email.</div></div></section>
+<section class="card"><div style="font-size:20px;font-weight:900">⏳ Submitted — Under Review</div><div class="muted">Worksheets from students who are not subscribed to a parent appear here. Subscribed students are reviewed entirely in their parent portal.</div><div id="pending"></div></section>
+<section class="card"><div style="font-size:20px;font-weight:900">📊 User Progress</div><div class="muted">Cloud data for students not assigned to a parent. Subscribed students remain under parent review.</div><div id="users"></div></section><section class="card" id="accountCard"><div style="font-size:20px;font-weight:900">🗑️ Student Account Management</div><div class="muted">Permanently delete one student, including worksheets, progress, mapping and Supabase Auth account.</div><div class="userProgressPicker" style="margin-top:10px"><label><b>Student:</b><select id="deleteStudentSelect"><option value="">Select a student…</option></select><button id="deleteStudentBtn" class="btn danger" style="margin-left:10px" disabled>🗑️ Delete Student Account</button></label><div class="muted" style="margin-top:8px;font-size:12px">This is permanent. The same email can be registered again; the application user ID is recreated from the email.</div></div></section>
 <section class="card" id="parentManagementCard">
 <div style="font-size:20px;font-weight:900">👨‍👩‍👧 Parent & Student Subscriptions</div>
 <div class="muted">Admin can subscribe or unsubscribe students for a parent, and permanently delete a parent account. Student accounts and student data are preserved when unsubscribed or when a parent is deleted.</div>
@@ -181,7 +181,16 @@ const op=x=>({addition:"➕ Addition",subtraction:"➖ Subtraction",multiplicati
 const pendingStatus=r=>['pending','under_review'].includes(String(r.status||'').toLowerCase());
 const approvedStatus=r=>['approved','reviewed','complete'].includes(String(r.status||'').toLowerCase());
 async function guard(){try{if(sessionStorage.getItem("poorviAuthMode")!=="supabase")return location.replace("login.html");const u=await KMT.me();if(!u||u.role!=="admin"){await KMT.logout();sessionStorage.clear();return location.replace("login.html")}sessionStorage.setItem("poorviDisplayName",u.name);await load()}catch(e){console.error(e);$("pending").innerHTML='<div class="empty">Unable to load cloud data. Please refresh or login again.</div>'}}
-async function load(){allRows=await KMT.allWorksheets();renderPending();renderSubmitted();await renderUsers();await renderParentManagement()}
+async function load(){
+  allRows=await KMT.allWorksheets();
+  try{
+    const parents=await KMT.adminParentOverview();
+    subscribedStudentIds=new Set();
+    (Array.isArray(parents)?parents:[]).forEach(p=>(Array.isArray(p.students)?p.students:[]).forEach(st=>subscribedStudentIds.add(String(st.student_id))));
+    subscriptionRoutingReady=true;
+  }catch(e){console.error('subscription routing',e);subscriptionRoutingReady=false;subscribedStudentIds=new Set();}
+  renderPending();renderSubmitted();await renderUsers();await renderParentManagement()
+}
 function rowHtml(r,reviewLabel){return '<div class="row"><div><b>'+op(r.operation)+'</b> <span class="tag">'+reviewLabel+'</span><div class="muted">'+new Date(r.submitted_at).toLocaleString()+' • '+(r.total||0)+' questions'+(r.range?' • '+esc(r.range):'')+'</div></div><div class="actions"><button class="btn primary" data-review="'+esc(r.id)+'">'+(approvedStatus(r)?'Edit Review':'Review')+'</button><button class="btn danger" data-void="'+esc(r.id)+'">🚫 Void</button></div></div>'}
 function wireRows(){
   // Click handling is delegated from document so newly-rendered worksheet
@@ -204,9 +213,10 @@ function wireRows(){
     }
   },true);
 }
-function renderPending(){const rows=allRows.filter(pendingStatus);if(!rows.length){$("pending").innerHTML='<div class="empty">🎉 No worksheets waiting for review.</div>';return}const groups={};rows.forEach(r=>(groups[r.user_id]??=[]).push(r));$("pending").innerHTML=Object.entries(groups).map(([uid,arr])=>'<div class="userGroup"><div class="userHead"><b>👤 '+esc(arr[0].user_name||uid)+'</b><span class="muted">'+arr.length+' worksheet'+(arr.length===1?'':'s')+'</span></div>'+arr.map(r=>rowHtml(r,'⏳ Under Review')).join('')+'</div>').join('');wireRows()}
-function renderSubmitted(){const rows=allRows.filter(r=>approvedStatus(r));let sec=document.getElementById('submittedApproved');if(!sec){const card=document.createElement('section');card.className='card';card.id='submittedApproved';card.innerHTML='<div style="font-size:20px;font-weight:900">✓ Approved / Submitted Worksheets</div><div class="muted">Edit a previous review or void an already submitted worksheet.</div><div id="approvedList"></div>';document.querySelector('.wrap').insertBefore(card,document.getElementById('reviewCard'));sec=card}const box=document.getElementById('approvedList');if(!rows.length){box.innerHTML='<div class="empty">No approved worksheets yet.</div>';return}const groups={};rows.forEach(r=>(groups[r.user_id]??=[]).push(r));box.innerHTML=Object.entries(groups).map(([uid,arr])=>'<div class="userGroup"><div class="userHead"><b>👤 '+esc(arr[0].user_name||uid)+'</b><span class="muted">'+arr.length+' approved worksheet'+(arr.length===1?'':'s')+'</span></div>'+arr.map(r=>rowHtml(r,'✓ Approved')).join('')+'</div>').join('');wireRows()}
+function renderPending(){if(!subscriptionRoutingReady){$("pending").innerHTML='<div class="empty">Parent subscription routing could not be verified. Worksheets are hidden here until the subscription status is available.</div>';return;}const rows=allRows.filter(r=>pendingStatus(r)&&!subscribedStudentIds.has(String(r.user_id)));if(!rows.length){$("pending").innerHTML='<div class="empty">🎉 No worksheets waiting for review.</div>';return}const groups={};rows.forEach(r=>(groups[r.user_id]??=[]).push(r));$("pending").innerHTML=Object.entries(groups).map(([uid,arr])=>'<div class="userGroup"><div class="userHead"><b>👤 '+esc(arr[0].user_name||uid)+'</b><span class="muted">'+arr.length+' worksheet'+(arr.length===1?'':'s')+'</span></div>'+arr.map(r=>rowHtml(r,'⏳ Under Review')).join('')+'</div>').join('');wireRows()}
+function renderSubmitted(){if(!subscriptionRoutingReady)return;const rows=allRows.filter(r=>approvedStatus(r)&&!subscribedStudentIds.has(String(r.user_id)));let sec=document.getElementById('submittedApproved');if(!sec){const card=document.createElement('section');card.className='card';card.id='submittedApproved';card.innerHTML='<div style="font-size:20px;font-weight:900">✓ Approved / Submitted Worksheets</div><div class="muted">Edit a previous review or void an already submitted worksheet.</div><div id="approvedList"></div>';document.querySelector('.wrap').insertBefore(card,document.getElementById('reviewCard'));sec=card}const box=document.getElementById('approvedList');if(!rows.length){box.innerHTML='<div class="empty">No approved worksheets yet.</div>';return}const groups={};rows.forEach(r=>(groups[r.user_id]??=[]).push(r));box.innerHTML=Object.entries(groups).map(([uid,arr])=>'<div class="userGroup"><div class="userHead"><b>👤 '+esc(arr[0].user_name||uid)+'</b><span class="muted">'+arr.length+' approved worksheet'+(arr.length===1?'':'s')+'</span></div>'+arr.map(r=>rowHtml(r,'✓ Approved')).join('')+'</div>').join('');wireRows()}
 async function renderUsers(){
+  if(!subscriptionRoutingReady){$("users").innerHTML='<div class="empty">Parent subscription routing could not be verified. Student progress is hidden here until the subscription status is available.</div>';return;}
   let users=[];
   try{
     users=await KMT.api('/rest/v1/kids_users?select=id,display_name,role&role=eq.user&order=display_name.asc');
@@ -219,6 +229,7 @@ async function renderUsers(){
   if(!users.length){
     $("users").innerHTML='<div class="empty">No student accounts found.</div>';return;
   }
+  const visibleUsers=users.filter(u=>!subscribedStudentIds.has(String(u.id)));
   const stats={};
   let cloudProgress=[];
   try{
@@ -226,7 +237,7 @@ async function renderUsers(){
   }catch(e){
     console.error('admin progress RPC',e);
   }
-  for(const u of users){
+  for(const u of visibleUsers){
     const p=(Array.isArray(cloudProgress)?cloudProgress:[]).filter(x=>String(x.user_id)===String(u.id));
     const total=p.length,correct=p.reduce((s,x)=>s+(+x.correct||0),0),
           wrong=p.reduce((s,x)=>s+(+x.wrong||0),0),na=p.reduce((s,x)=>s+(+x.not_answered||0),0),
@@ -234,9 +245,10 @@ async function renderUsers(){
           accuracy=questions?Math.round(correct*100/questions):0;
     stats[u.id]={p,total,correct,wrong,na,accuracy,name:u.display_name};
   }
-  const first=users[0].id;
+  if(!visibleUsers.length){$("users").innerHTML='<div class="empty">All enrolled students are managed in their parent portals. No unassigned student progress is available here.</div>';return;}
+  const first=visibleUsers[0].id;
   $("users").innerHTML='<div class="userProgressPicker"><label><b>Student:</b> <select id="adminProgressStudent">'+
-    users.map(u=>'<option value="'+esc(u.id)+'"'+(u.id===first?' selected':'')+'>'+esc(u.display_name)+'</option>').join('')+
+    visibleUsers.map(u=>'<option value="'+esc(u.id)+'"'+(u.id===first?' selected':'')+'>'+esc(u.display_name)+'</option>').join('')+
     '</select></label></div><div id="adminSelectedProgress" style="margin-top:14px"></div>';
   const sel=document.getElementById('adminProgressStudent'),out=document.getElementById('adminSelectedProgress');
   function renderSelected(){
