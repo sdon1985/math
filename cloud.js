@@ -10,6 +10,29 @@
   async function refresh(){if(!S.refresh)return false;try{const d=await auth('token?grant_type=refresh_token',{refresh_token:S.refresh});S.access=d.access_token;S.refresh=d.refresh_token||S.refresh;S.user=d.user;save();return true}catch(e){return false}}
   async function api(path,opt={}){const c=cfg();load();let h=Object.assign({apikey:c.supabaseAnonKey,Authorization:'Bearer '+(S.access||c.supabaseAnonKey),'Content-Type':'application/json'},opt.headers||{});let r=await fetch(c.supabaseUrl+path,Object.assign({},opt,{headers:h}));if(r.status===401&&await refresh()){h.Authorization='Bearer '+S.access;r=await fetch(c.supabaseUrl+path,Object.assign({},opt,{headers:h}))}const t=await r.text();if(!r.ok)throw Error(t||('API HTTP '+r.status));return t?JSON.parse(t):null}
   async function rpc(name,body){return api('/rest/v1/rpc/'+name,{method:'POST',body:JSON.stringify(body)})}
+  function registrationLimitMessage(kind){
+    const next=new Date(Date.now()+60*60*1000);
+    const when=next.toLocaleString([], {year:'numeric',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+    const label=kind==='parent'?'student or parent':'student';
+    return 'Registration email limit reached. A maximum of 2 new '+label+' registration emails can be sent during the current Supabase limit window. Please try again after '+when+' (your local time).';
+  }
+  function friendlyRegistrationError(e,kind){
+    const raw=String(e?.message||e||'');
+    if(/429|over_email_send_rate_limit|email send rate limit|rate limit exceeded/i.test(raw))return Error(registrationLimitMessage(kind));
+    if(/already registered|already exists/i.test(raw))return Error(kind==='parent'?'This parent email is already registered. Use Parent Login.':'This email is already registered. Use Student Login, or register with a different email.');
+    return e instanceof Error?e:Error(raw||'Registration failed. Please try again.');
+  }
+  async function studentLoginStatus(email){
+    const v=String(email||'').trim().toLowerCase();
+    if(!v)return 'not_found';
+    try{
+      const r=await rpc('student_login_status',{p_email:v});
+      const value=Array.isArray(r)?(r[0]?.status||r[0]):(r?.status||r);
+      return String(value||'not_found').toLowerCase();
+    }catch(e){
+      return 'unknown';
+    }
+  }
   async function login(appId,pin){
     load();
     let email;
@@ -37,6 +60,9 @@
         // UI still lets them remember only their 4-digit PIN.
         d=await auth('token?grant_type=password',{email:String(email),password:authPassword(pin)});
       }catch(secondError){
+        const status=await studentLoginStatus(email);
+        if(status==='not_found')throw Error('Student account is not registered. Please create a Student Account first.');
+        if(status==='auth_only')throw Error('Student registration is incomplete. Please complete the email confirmation and try again.');
         throw Error(friendlyAuthError(secondError||firstError));
       }
     }
@@ -138,7 +164,7 @@
     localStorage.setItem(pendingKey,JSON.stringify({displayName,email,createdAt:Date.now()}));
     let d;
     try{d=await auth('signup?redirect_to='+encodeURIComponent(redirect),{email,password,data:{display_name:displayName,role:'parent'}})}
-    catch(e){const msg=String(e?.message||e);if(/already registered|already exists/i.test(msg))throw Error('This parent email is already registered. Use Parent Login.');throw e;}
+    catch(e){throw friendlyRegistrationError(e,'parent');}
     // Some Supabase/Auth configurations send the confirmation email but do not
     // return the Auth user object to the browser. Treat that response as a
     // pending confirmation instead of showing a false registration failure.
@@ -302,11 +328,7 @@
         data:{display_name:displayName,role:'student'}
       });
     }catch(e){
-      const msg=String(e?.message||e);
-      if(/already registered|already exists|user.*exist/i.test(msg)){
-        throw Error('This email is already registered. Use Student Login, or register with a different email.');
-      }
-      throw e;
+      throw friendlyRegistrationError(e,'student');
     }
 
     // With email confirmation enabled, Supabase returns a user and no session.
@@ -524,5 +546,5 @@
 
   async function worksheets(uid){return api('/rest/v1/worksheets?select=*&user_id=eq.'+encodeURIComponent(uid)+'&order=submitted_at.desc')}
   async function allWorksheets(){return api('/rest/v1/worksheets?select=*&order=submitted_at.desc')}
-  window.KMT={finishEmailConfirmation,finishParentEmailConfirmation,load,login,loginWithEmail,registerStudent,registerParent,parentLogin,enrollStudent,parentStudents,parentProgress,parentWorksheets,parentReviewWorksheet,adminProgress,adminParentOverview,adminParentSubscribe,adminParentUnsubscribe,adminDeleteParent,deleteStudentAccount,logout,me,submit,pending,reviewed,progress,progressFromRows,worksheets,allWorksheets,voidWorksheet,syncStudentPin,api};
+  window.KMT={studentLoginStatus,finishEmailConfirmation,finishParentEmailConfirmation,load,login,loginWithEmail,registerStudent,registerParent,parentLogin,enrollStudent,parentStudents,parentProgress,parentWorksheets,parentReviewWorksheet,adminProgress,adminParentOverview,adminParentSubscribe,adminParentUnsubscribe,adminDeleteParent,deleteStudentAccount,logout,me,submit,pending,reviewed,progress,progressFromRows,worksheets,allWorksheets,voidWorksheet,syncStudentPin,api};
 })();
