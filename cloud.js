@@ -6,19 +6,21 @@
   function cfg(){if(!C||!C.supabaseUrl||!C.supabaseAnonKey)throw Error('Cloud configuration is missing.');return C}
   function load(){try{const x=JSON.parse(sessionStorage.getItem(key)||'null');if(x){S.access=x.access;S.refresh=x.refresh;S.user=x.user}}catch(e){}}
   function save(){sessionStorage.setItem(key,JSON.stringify({access:S.access,refresh:S.refresh,user:S.user}))}
-  async function auth(path,body){const c=cfg();const r=await fetch(c.supabaseUrl+'/auth/v1/'+path,{method:'POST',headers:{apikey:c.supabaseAnonKey,'Content-Type':'application/json'},body:JSON.stringify(body)});const t=await r.text();if(!r.ok)throw Error(t||('Auth HTTP '+r.status));return JSON.parse(t)}
+  async function auth(path,body){const c=cfg();const r=await fetch(c.supabaseUrl+'/auth/v1/'+path,{method:'POST',headers:{apikey:c.supabaseAnonKey,'Content-Type':'application/json'},body:JSON.stringify(body)});const t=await r.text();if(!r.ok){let msg=t||('Auth HTTP '+r.status);let e=Error(msg);e.status=r.status;e.retryAfter=r.headers.get('Retry-After');e.errorCode='';try{const j=JSON.parse(t);e.errorCode=j.error_code||j.error||'';e.authMessage=j.msg||j.message||'';}catch(_){}throw e;}return t?JSON.parse(t):null}
   async function refresh(){if(!S.refresh)return false;try{const d=await auth('token?grant_type=refresh_token',{refresh_token:S.refresh});S.access=d.access_token;S.refresh=d.refresh_token||S.refresh;S.user=d.user;save();return true}catch(e){return false}}
   async function api(path,opt={}){const c=cfg();load();let h=Object.assign({apikey:c.supabaseAnonKey,Authorization:'Bearer '+(S.access||c.supabaseAnonKey),'Content-Type':'application/json'},opt.headers||{});let r=await fetch(c.supabaseUrl+path,Object.assign({},opt,{headers:h}));if(r.status===401&&await refresh()){h.Authorization='Bearer '+S.access;r=await fetch(c.supabaseUrl+path,Object.assign({},opt,{headers:h}))}const t=await r.text();if(!r.ok)throw Error(t||('API HTTP '+r.status));return t?JSON.parse(t):null}
   async function rpc(name,body){return api('/rest/v1/rpc/'+name,{method:'POST',body:JSON.stringify(body)})}
-  function registrationLimitMessage(kind){
-    const next=new Date(Date.now()+60*60*1000);
+  function registrationLimitMessage(kind,e){
+    const seconds=Number(e?.retryAfter||0);
+    const waitMs=(seconds>0?seconds:3600)*1000;
+    const next=new Date(Date.now()+waitMs);
     const when=next.toLocaleString([], {year:'numeric',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
     const label=kind==='parent'?'student or parent':'student';
-    return 'Registration email limit reached. A maximum of 2 new '+label+' registration emails can be sent during the current Supabase limit window. Please try again after '+when+' (your local time).';
+    return 'Registration email limit reached. The current Supabase email provider allows up to 2 registration emails in its current limit window. Please wait and try again after '+when+' (your local time).';
   }
   function friendlyRegistrationError(e,kind){
     const raw=String(e?.message||e||'');
-    if(/429|over_email_send_rate_limit|email send rate limit|rate limit exceeded/i.test(raw))return Error(registrationLimitMessage(kind));
+    if(/429|over_email_send_rate_limit|email send rate limit|rate limit exceeded/i.test(raw))return Error(registrationLimitMessage(kind,e));
     if(/already registered|already exists/i.test(raw))return Error(kind==='parent'?'This parent email is already registered. Use Parent Login.':'This email is already registered. Use Student Login, or register with a different email.');
     return e instanceof Error?e:Error(raw||'Registration failed. Please try again.');
   }
@@ -111,7 +113,13 @@
     if(!p[0])throw Error('Your email is confirmed, but the Student profile is not available. Please try again after the Production 3.9.2 database migration is installed.');
     S.user={authId:d.user.id,id:p[0].id,name:p[0].display_name,role:p[0].role,email:String(email)};save();if(S.user.role==='user')await syncStudentPin(pin);return S.user;
   }
-  async function loginWithEmail(email,pin){return finishLogin(email.trim().toLowerCase(),pin,null)}
+  async function loginWithEmail(email,pin){
+    email=String(email||'').trim().toLowerCase();
+    const status=await studentLoginStatus(email);
+    if(status==='not_found')throw Error('Student account is not registered. Please create a Student Account first.');
+    if(status==='auth_only')throw Error('Student registration is incomplete. Please confirm the student email, then try again.');
+    return finishLogin(email,pin,null);
+  }
   async function syncStudentPin(pin){
     if(!S.user?.id||S.user.role!=="user"||!/^\d{4}$/.test(String(pin)))return false;
     let lastError=null;
@@ -150,7 +158,7 @@
       await rpc('register_parent',{p_auth_user_id:d.user.id,p_display_name:displayName,p_email:d.user.email||email});
       p=await api('/rest/v1/parent_users?select=auth_user_id,display_name,email&auth_user_id=eq.'+encodeURIComponent(d.user.id));
     }
-    if(!p[0]){await logout();throw Error('Parent profile could not be created. Run the Production 3.9.1 parent SQL migration in Supabase.');}
+    if(!p[0]){await logout();throw Error('Parent profile could not be created. Run the Production 3.9.2 parent SQL migration in Supabase.');}
     S.user={authId:d.user.id,id:d.user.id,name:p[0].display_name,role:'parent',email:p[0].email||email};save();return S.user;
   }
 
@@ -217,7 +225,7 @@
       const name=au.user_metadata?.display_name||au.user_metadata?.name||'Parent';
       await rpc('register_parent',{p_auth_user_id:au.id,p_display_name:name,p_email:au.email||''});
       const again=await api('/rest/v1/parent_users?select=auth_user_id,display_name,email&auth_user_id=eq.'+encodeURIComponent(au.id));
-      if(!again[0])throw Error('Parent profile is not available. Run the Production 3.9.1 database migration.');
+      if(!again[0])throw Error('Parent profile is not available. Run the Production 3.9.2 database migration.');
       S.user={authId:au.id,id:au.id,name:again[0].display_name,role:'parent',email:again[0].email};save();
       return S.user;
     }
