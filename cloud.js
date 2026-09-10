@@ -90,7 +90,7 @@
         await logout();
         const detail=String(repairError?.message||repairError||'');
         if(/function .*repair_student_mapping.*does not exist|PGRST202/i.test(detail))throw Error('Student profile repair is not enabled yet. Run the Production 3.9.2 Student Mapping Repair SQL in Supabase, then try Student Login again.');
-        throw Error('Your email is confirmed, but the Student profile could not be synchronized. Please run the Production 3.9.2 Student Mapping Repair SQL in Supabase, then try Student Login again.');
+        throw Error('Student profile synchronization failed: '+(detail||'unknown database error'));
       }
     }
 
