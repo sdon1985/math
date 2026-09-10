@@ -117,7 +117,11 @@
     email=String(email||'').trim().toLowerCase();
     const status=await studentLoginStatus(email);
     if(status==='not_found')throw Error('Student account is not registered. Please create a Student Account first.');
-    if(status==='auth_only')throw Error('Student registration is incomplete. Please confirm the student email, then try again.');
+    // A confirmed Student Auth account can exist without its application mapping
+    // when registration/confirmation happened in an older browser/build. Do not
+    // block it as incomplete: finishLogin() authenticates the PIN and repairs the
+    // auth_users + kids_users mapping automatically.
+    if(status==='auth_only')return finishLogin(email,pin,null);
     return finishLogin(email,pin,null);
   }
   async function syncStudentPin(pin){
