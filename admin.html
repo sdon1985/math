@@ -59,7 +59,7 @@ body.review-open{overflow:hidden!important}
 }
 #questions .reviewQuestion{
   display:grid!important;
-  grid-template-columns:48px minmax(260px,1fr) minmax(260px,1fr) minmax(330px,1.15fr)!important;
+  grid-template-columns:48px minmax(180px,1fr) 78px 78px minmax(330px,1.15fr)!important;
   gap:10px!important;
   align-items:center!important;
   width:100%!important;
@@ -75,6 +75,21 @@ body.review-open{overflow:hidden!important}
 #questions .reviewNumber{
   font-size:15px!important;font-weight:900!important;text-align:center!important;
 }
+#questions .answerProblem{
+  min-width:0!important;
+  height:82px!important;
+  min-height:82px!important;
+  box-sizing:border-box!important;
+  border:1px solid #dfe4ec!important;
+  border-radius:10px!important;
+  padding:8px!important;
+  margin:0!important;
+  display:flex!important;
+  flex-direction:column!important;
+  justify-content:center!important;
+  overflow:hidden!important;
+}
+#questions .answerProblem b{font-size:16px!important;line-height:1.2!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
 #questions .answerExpected,
 #questions .answerWritten,
 #questions .answerDecision{
@@ -325,16 +340,17 @@ function drawReview(focusIndex=null){
   $("questions").innerHTML=
     '<div class="reviewSummary"><span>✓ Correct: '+c+'</span><span>✗ Wrong: '+w+'</span><span>— Not Answered: '+n+'</span></div>'+
     answers.map(a=>{
-      const expected='<div class="answerExpected"><span class="reviewLabel">App Answer</span><b>'+esc(a.problem||'')+' = '+esc(a.ans||'')+'</b></div>';
+      const problem='<div class="answerProblem"><span class="reviewLabel">Question</span><b>'+esc(a.problem||'')+' =</b></div>';
+      const expected='<div class="answerExpected"><span class="reviewLabel">Correct</span><b>'+esc(a.ans||'')+'</b></div>';
       const written=a.image
-        ? '<div class="answerWritten"><span class="reviewLabel">Student Pencil Answer</span><img src="'+a.image+'" alt="Student handwritten answer"></div>'
-        : '<div class="answerWritten"><span class="reviewLabel">Student Pencil Answer</span><span class="muted">No handwriting</span></div>';
+        ? '<div class="answerWritten"><span class="reviewLabel">Student</span><img src="'+a.image+'" alt="Student handwritten answer"></div>'
+        : '<div class="answerWritten"><span class="reviewLabel">Student</span><span class="muted">No handwriting</span></div>';
       const decision='<div class="answerDecision"><span class="reviewLabel">Correction</span><div class="status">'+
         '<button type="button" data-s="correct" class="'+(a.status==='correct'?'selC':'')+'">✓ Correct</button>'+
         '<button type="button" data-s="wrong" class="'+(a.status==='wrong'?'selW':'')+'">✗ Wrong</button>'+
         '<button type="button" data-s="not_answered" class="'+(a.status==='not_answered'?'selN':'')+'">— Not Answered</button>'+
         '</div></div>';
-      return '<div class="question reviewQuestion" data-q="'+a.i+'"><b class="reviewNumber">#'+(a.i+1)+'</b>'+expected+written+decision+'</div>';
+      return '<div class="question reviewQuestion" data-q="'+a.i+'"><b class="reviewNumber">#'+(a.i+1)+'</b>'+problem+expected+written+decision+'</div>';
     }).join('');
 
   $("questions").querySelectorAll('.reviewQuestion').forEach(q=>{
