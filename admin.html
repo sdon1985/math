@@ -17,32 +17,121 @@ input,textarea,[contenteditable="true"],[contenteditable=""] {
 body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial}button,a{font:inherit}button{cursor:pointer}.wrap{max-width:1180px;margin:auto;padding:16px}.header,.card{background:var(--card);border:1px solid var(--line);border-radius:20px;box-shadow:0 10px 35px #10182812}.header{padding:18px;display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.header h1{margin:0;font-size:27px}.muted{color:var(--muted)}.actions{display:flex;gap:8px;flex-wrap:wrap}.btn{border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px 14px;font-weight:800;min-height:42px;text-decoration:none;color:inherit}.primary{background:var(--brand);color:#fff;border-color:var(--brand)}.danger{background:var(--danger);color:#a32929;border-color:#fecaca}.card{padding:18px;margin-top:12px}.row{padding:12px 0;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.userGroup{border:1px solid var(--line);border-radius:16px;margin-top:10px;overflow:hidden}.userHead{background:#f8fafc;padding:12px 14px;display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}.tag{display:inline-block;padding:4px 8px;border-radius:999px;font-size:12px;font-weight:800;background:var(--warn);color:#7a5200}.reviewTop{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}.question{display:grid;grid-template-columns:42px minmax(200px,1fr) 82px auto;gap:10px;align-items:center;padding:9px 0;border-top:1px solid #edf0f4}.answerImg{width:76px;height:48px;object-fit:contain;border:1px solid #cfd6df;border-radius:7px;background:#fff}.status{display:flex;gap:5px;flex-wrap:nowrap}.status button{padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:#fff;white-space:nowrap;font-size:13px;font-weight:750}.status .selC{background:var(--good);color:#166534;border-color:#86efac}.status .selW{background:#fee2e2;color:#991b1b;border-color:#fecaca}.status .selN{background:#eef2f6;color:#475467}.reviewSummary{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.reviewSummary span{padding:6px 9px;border-radius:999px;background:#f5f7fa;font-size:12px;font-weight:800}.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;margin-top:10px}.stat{background:#f7f9fc;border-radius:12px;padding:11px;text-align:center}.stat b{display:block;font-size:21px}.empty{text-align:center;padding:24px;color:var(--muted)}.hidden{display:none!important}.footer{text-align:center;color:#7b8797;font-size:12px;padding:20px}@media(max-width:700px){.stats{grid-template-columns:repeat(2,1fr)}.question{grid-template-columns:34px 1fr 68px}.question .status{grid-column:1/-1}.status{flex-wrap:wrap}.answerImg{width:66px;height:44px}}
 .userProgressPicker{padding:12px;border:1px solid var(--line);border-radius:12px;background:#f8fafc}.userProgressPicker select{margin-left:8px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff}
 
-/* Production 3.9.2 admin review improvements */
-#questions .question.reviewQuestion{
-  display:grid;
-  grid-template-columns:minmax(180px,1fr) minmax(180px,1fr) minmax(250px,1.2fr);
-  gap:12px; align-items:center;
+/* Production 3.9.2 — reliable Admin review UI */
+body.review-open{overflow:hidden!important}
+#reviewCard{
+  display:none;
 }
-#questions .answerExpected,#questions .answerWritten,#questions .answerDecision{
-  min-width:0;
+#reviewCard:not(.hidden){
+  display:block!important;
+  position:fixed!important;
+  z-index:99999!important;
+  inset:16px!important;
+  width:auto!important;
+  height:auto!important;
+  max-height:calc(100vh - 32px)!important;
+  overflow:hidden!important;
+  margin:0!important;
+  padding:16px!important;
+  border-radius:18px!important;
+  background:#fff!important;
+  box-shadow:0 24px 80px rgba(0,0,0,.28)!important;
 }
+#reviewCard .reviewTop{
+  position:sticky!important;
+  top:0!important;
+  z-index:10!important;
+  background:#fff!important;
+  padding-bottom:10px!important;
+  border-bottom:1px solid #e5e7eb!important;
+}
+#questions{
+  height:calc(100vh - 145px)!important;
+  overflow:auto!important;
+  padding:4px 2px 30px!important;
+}
+#questions .reviewSummary{
+  position:sticky!important;
+  top:0!important;
+  z-index:8!important;
+  background:#fff!important;
+  padding:8px 0!important;
+}
+#questions .reviewQuestion{
+  display:grid!important;
+  grid-template-columns:48px minmax(260px,1fr) minmax(260px,1fr) minmax(330px,1.15fr)!important;
+  gap:10px!important;
+  align-items:center!important;
+  width:100%!important;
+  min-width:930px!important;
+  min-height:100px!important;
+  box-sizing:border-box!important;
+  padding:8px!important;
+  margin:0 0 7px!important;
+  border:1px solid #e2e7ef!important;
+  border-radius:12px!important;
+  background:#fff!important;
+}
+#questions .reviewNumber{
+  font-size:15px!important;font-weight:900!important;text-align:center!important;
+}
+#questions .answerExpected,
+#questions .answerWritten,
+#questions .answerDecision{
+  height:82px!important;
+  min-height:82px!important;
+  box-sizing:border-box!important;
+  border:1px solid #dfe4ec!important;
+  border-radius:10px!important;
+  padding:8px!important;
+  margin:0!important;
+  display:flex!important;
+  flex-direction:column!important;
+  justify-content:center!important;
+}
+#questions .answerExpected{background:#f7f9ff!important}
+#questions .answerWritten{background:#fff!important;text-align:center!important}
 #questions .reviewLabel{
-  display:block;font-size:.75rem;font-weight:700;text-transform:uppercase;
-  letter-spacing:.04em;margin-bottom:5px;opacity:.7;
+  display:block!important;
+  font-size:10px!important;
+  font-weight:900!important;
+  text-transform:uppercase!important;
+  letter-spacing:.04em!important;
+  margin:0 0 4px!important;
+  opacity:.65!important;
 }
-#questions .answerExpected{padding:10px;border:1px solid #dbe4ee;border-radius:10px;background:#f8fafc}
-#questions .answerWritten{padding:8px;border:1px solid #dbe4ee;border-radius:10px;background:#fff;text-align:center}
-#questions .answerWritten img{display:block;max-width:100%;max-height:110px;margin:0 auto;object-fit:contain;border-radius:6px}
-#questions .answerDecision .status{display:flex;flex-wrap:wrap;gap:6px}
-#questions .answerDecision .status button{margin:0}
-#questions .question.reviewQuestion.flashTarget{outline:2px solid #2563eb;outline-offset:2px}
-@media(max-width:850px){
-  #questions .question.reviewQuestion{grid-template-columns:1fr 1fr}
-  #questions .answerDecision{grid-column:1/-1}
+#questions .answerExpected b{font-size:16px!important;line-height:1.2!important}
+#questions .answerWritten img{
+  display:block!important;
+  width:auto!important;
+  height:54px!important;
+  max-width:100%!important;
+  max-height:54px!important;
+  object-fit:contain!important;
+  margin:0 auto!important;
 }
-@media(max-width:560px){
-  #questions .question.reviewQuestion{grid-template-columns:1fr}
-  #questions .answerDecision{grid-column:auto}
+#questions .answerWritten .muted{font-size:11px!important}
+#questions .answerDecision .status{
+  display:flex!important;
+  flex-wrap:nowrap!important;
+  gap:5px!important;
+  align-items:center!important;
+}
+#questions .answerDecision .status button{
+  flex:0 0 auto!important;
+  min-height:35px!important;
+  padding:7px 9px!important;
+  margin:0!important;
+  white-space:nowrap!important;
+  font-size:12px!important;
+}
+#questions .question.reviewQuestion.flashTarget{
+  outline:2px solid #2563eb!important;
+  outline-offset:1px!important;
+}
+@media(max-width:700px){
+  #reviewCard:not(.hidden){inset:7px!important;max-height:calc(100vh - 14px)!important}
+  #questions{height:calc(100vh - 145px)!important}
 }
 </style>
 <script>
@@ -52,7 +141,7 @@ document.addEventListener('selectstart',function(e){
 },true);
 </script>
 </head><body><div class="wrap">
-<header class="header"><div><div style="font-size:12px;font-weight:900;letter-spacing:.12em;color:#64748b">KIDS MATH TEST • Production 3.9.2</div><h1>👑 Parent Dashboard</h1><div class="muted">Cloud worksheets, reviews and progress</div></div><div class="actions"><a class="btn" href="index.html">👤 User Page</a><a class="btn" href="login.html">🔐 Switch Login</a><button id="refresh" class="btn">↻ Refresh</button></div></header>
+<header class="header"><div><div style="font-size:12px;font-weight:900;letter-spacing:.12em;color:#64748b">STUDENT PRACTICE SHEETS • Production 3.9.2</div><h1>👑 Parent Dashboard</h1><div class="muted">Cloud worksheets, reviews and progress</div></div><div class="actions"><a class="btn" href="index.html">👤 User Page</a><a class="btn" href="login.html">🔐 Switch Login</a><button id="refresh" class="btn">↻ Refresh</button></div></header>
 <section class="card"><div style="font-size:20px;font-weight:900">⏳ Submitted — Under Review</div><div class="muted">New worksheets appear here immediately, including timer auto-submissions.</div><div id="pending"></div></section>
 <section class="card"><div style="font-size:20px;font-weight:900">📊 User Progress</div><div class="muted">Cloud data grouped by user.</div><div id="users"></div></section><section class="card" id="accountCard"><div style="font-size:20px;font-weight:900">🗑️ Student Account Management</div><div class="muted">Permanently delete one student, including worksheets, progress, mapping and Supabase Auth account.</div><div class="userProgressPicker" style="margin-top:10px"><label><b>Student:</b><select id="deleteStudentSelect"><option value="">Select a student…</option></select><button id="deleteStudentBtn" class="btn danger" style="margin-left:10px" disabled>🗑️ Delete Student Account</button></label><div class="muted" style="margin-top:8px;font-size:12px">This is permanent. The same email can be registered again; the application user ID is recreated from the email.</div></div></section>
 <section class="card" id="parentManagementCard">
@@ -79,7 +168,27 @@ const approvedStatus=r=>['approved','reviewed','complete'].includes(String(r.sta
 async function guard(){try{if(sessionStorage.getItem("poorviAuthMode")!=="supabase")return location.replace("login.html");const u=await KMT.me();if(!u||u.role!=="admin"){await KMT.logout();sessionStorage.clear();return location.replace("login.html")}sessionStorage.setItem("poorviDisplayName",u.name);await load()}catch(e){console.error(e);$("pending").innerHTML='<div class="empty">Unable to load cloud data. Please refresh or login again.</div>'}}
 async function load(){allRows=await KMT.allWorksheets();renderPending();renderSubmitted();await renderUsers();await renderParentManagement()}
 function rowHtml(r,reviewLabel){return '<div class="row"><div><b>'+op(r.operation)+'</b> <span class="tag">'+reviewLabel+'</span><div class="muted">'+new Date(r.submitted_at).toLocaleString()+' • '+(r.total||0)+' questions'+(r.range?' • '+esc(r.range):'')+'</div></div><div class="actions"><button class="btn primary" data-review="'+esc(r.id)+'">'+(approvedStatus(r)?'Edit Review':'Review')+'</button><button class="btn danger" data-void="'+esc(r.id)+'">🚫 Void</button></div></div>'}
-function wireRows(){document.querySelectorAll('[data-review]').forEach(b=>b.onclick=()=>openReview(b.dataset.review));document.querySelectorAll('[data-void]').forEach(b=>b.onclick=()=>voidRow(b.dataset.void))}
+function wireRows(){
+  // Click handling is delegated from document so newly-rendered worksheet
+  // buttons always open the exact worksheet.
+  if(window.__kmtReviewDelegated)return;
+  window.__kmtReviewDelegated=true;
+  document.addEventListener('click',function(e){
+    const reviewBtn=e.target.closest('[data-review]');
+    if(reviewBtn){
+      e.preventDefault();
+      e.stopPropagation();
+      openReview(reviewBtn.getAttribute('data-review'));
+      return;
+    }
+    const voidBtn=e.target.closest('[data-void]');
+    if(voidBtn){
+      e.preventDefault();
+      e.stopPropagation();
+      voidRow(voidBtn.getAttribute('data-void'));
+    }
+  },true);
+}
 function renderPending(){const rows=allRows.filter(pendingStatus);if(!rows.length){$("pending").innerHTML='<div class="empty">🎉 No worksheets waiting for review.</div>';return}const groups={};rows.forEach(r=>(groups[r.user_id]??=[]).push(r));$("pending").innerHTML=Object.entries(groups).map(([uid,arr])=>'<div class="userGroup"><div class="userHead"><b>👤 '+esc(arr[0].user_name||uid)+'</b><span class="muted">'+arr.length+' worksheet'+(arr.length===1?'':'s')+'</span></div>'+arr.map(r=>rowHtml(r,'⏳ Under Review')).join('')+'</div>').join('');wireRows()}
 function renderSubmitted(){const rows=allRows.filter(r=>approvedStatus(r));let sec=document.getElementById('submittedApproved');if(!sec){const card=document.createElement('section');card.className='card';card.id='submittedApproved';card.innerHTML='<div style="font-size:20px;font-weight:900">✓ Approved / Submitted Worksheets</div><div class="muted">Edit a previous review or void an already submitted worksheet.</div><div id="approvedList"></div>';document.querySelector('.wrap').insertBefore(card,document.getElementById('reviewCard'));sec=card}const box=document.getElementById('approvedList');if(!rows.length){box.innerHTML='<div class="empty">No approved worksheets yet.</div>';return}const groups={};rows.forEach(r=>(groups[r.user_id]??=[]).push(r));box.innerHTML=Object.entries(groups).map(([uid,arr])=>'<div class="userGroup"><div class="userHead"><b>👤 '+esc(arr[0].user_name||uid)+'</b><span class="muted">'+arr.length+' approved worksheet'+(arr.length===1?'':'s')+'</span></div>'+arr.map(r=>rowHtml(r,'✓ Approved')).join('')+'</div>').join('');wireRows()}
 async function renderUsers(){
@@ -178,56 +287,82 @@ async function renderParentManagement(){
   }
 }
 
-function openReview(id){selected=allRows.find(r=>r.id===id&&!['voided'].includes(String(r.status||'').toLowerCase()));if(!selected)return;const answers=Array.isArray(selected.submission?.answers)?selected.submission.answers:[];selected.submission=selected.submission||{};selected.submission.answers=answers;const isEnglish=String(selected.operation||'').toLowerCase().includes('english');if(!isEnglish)answers.forEach(a=>{if(!['correct','wrong','not_answered'].includes(a.status))a.status=a.filled?'correct':'not_answered'});drawReview()}
-function drawReview(focusIndex=null){
-  const answers=selected.submission.answers||[];
-  const c=answers.filter(a=>a.status==='correct').length,
-        w=answers.filter(a=>a.status==='wrong').length,
-        n=answers.filter(a=>a.status==='not_answered').length,
-        p=answers.filter(a=>a.status==='pending').length;
-  $("reviewMeta").textContent=(selected.user_name||selected.user_id)+' • '+op(selected.operation)+' • '+new Date(selected.submitted_at).toLocaleString()+' • '+answers.length+' questions • '+(approvedStatus(selected)?'Approved — Edit mode':'Under Parent Review');
+function openReview(id){
+  const wanted=String(id??'').trim();
+  const found=allRows.find(r=>String(r.id??'').trim()===wanted && String(r.status||'').toLowerCase()!=='voided');
+  if(!found){
+    console.error('KMT Admin Review: worksheet not found', {id:wanted, ids:allRows.map(r=>String(r.id))});
+    alert('This worksheet could not be opened. Please click Refresh and try again.');
+    return;
+  }
+
+  selected=found;
+  selected.submission=selected.submission||{};
+  selected.submission.answers=Array.isArray(selected.submission.answers)?selected.submission.answers:[];
 
   const isEnglish=String(selected.operation||'').toLowerCase().includes('english');
-  $("questions").innerHTML='<div class="reviewSummary"><span>✓ Correct: '+c+'</span><span>✗ Wrong: '+w+'</span><span>— Not Answered: '+n+'</span></div>'+
+  if(!isEnglish){
+    selected.submission.answers.forEach(a=>{
+      if(!['correct','wrong','not_answered'].includes(a.status))
+        a.status=a.filled?'correct':'not_answered';
+    });
+  }
+
+  drawReview();
+  const card=$("reviewCard");
+  card.classList.remove('hidden');
+  document.body.classList.add('review-open');
+}
+
+function drawReview(focusIndex=null){
+  const answers=selected?.submission?.answers||[];
+  const c=answers.filter(a=>a.status==='correct').length;
+  const w=answers.filter(a=>a.status==='wrong').length;
+  const n=answers.filter(a=>a.status==='not_answered').length;
+
+  $("reviewMeta").textContent=(selected.user_name||selected.user_id)+' • '+op(selected.operation)+' • '+new Date(selected.submitted_at).toLocaleString()+' • '+answers.length+' questions • '+(approvedStatus(selected)?'Approved — Edit mode':'Under Parent Review');
+
+  $("questions").innerHTML=
+    '<div class="reviewSummary"><span>✓ Correct: '+c+'</span><span>✗ Wrong: '+w+'</span><span>— Not Answered: '+n+'</span></div>'+
     answers.map(a=>{
-      const img=a.image
-        ? '<img class="answerImg" src="'+a.image+'" alt="Student handwritten answer">'
-        : '<div class="muted">No handwriting image</div>';
-      const expected='<div class="answerExpected"><span class="reviewLabel">Expected / App Answer</span><b>'+esc(a.problem||'')+' = '+esc(a.ans||'')+'</b></div>';
-      const written='<div class="answerWritten"><span class="reviewLabel">Student Pencil Answer</span>'+img+'</div>';
-      const reading=isEnglish
-        ? '<div class="muted" style="margin-top:5px">App reading: '+esc(a.ocr||'not recognized')+'</div>'
-        : '';
-      const decision='<div class="answerDecision"><span class="reviewLabel">Correction</span>'+reading+
-        '<div class="status"><button data-s="correct" class="'+(a.status==='correct'?'selC':'')+'">✓ Correct</button>'+
-        '<button data-s="wrong" class="'+(a.status==='wrong'?'selW':'')+'">✗ Wrong</button>'+
-        '<button data-s="not_answered" class="'+(a.status==='not_answered'?'selN':'')+'">— Not Answered</button></div></div>';
-      return '<div class="question reviewQuestion" data-q="'+a.i+'"><b>#'+(a.i+1)+'</b>'+expected+written+decision+'</div>';
+      const expected='<div class="answerExpected"><span class="reviewLabel">App Answer</span><b>'+esc(a.problem||'')+' = '+esc(a.ans||'')+'</b></div>';
+      const written=a.image
+        ? '<div class="answerWritten"><span class="reviewLabel">Student Pencil Answer</span><img src="'+a.image+'" alt="Student handwritten answer"></div>'
+        : '<div class="answerWritten"><span class="reviewLabel">Student Pencil Answer</span><span class="muted">No handwriting</span></div>';
+      const decision='<div class="answerDecision"><span class="reviewLabel">Correction</span><div class="status">'+
+        '<button type="button" data-s="correct" class="'+(a.status==='correct'?'selC':'')+'">✓ Correct</button>'+
+        '<button type="button" data-s="wrong" class="'+(a.status==='wrong'?'selW':'')+'">✗ Wrong</button>'+
+        '<button type="button" data-s="not_answered" class="'+(a.status==='not_answered'?'selN':'')+'">— Not Answered</button>'+
+        '</div></div>';
+      return '<div class="question reviewQuestion" data-q="'+a.i+'"><b class="reviewNumber">#'+(a.i+1)+'</b>'+expected+written+decision+'</div>';
     }).join('');
 
-  document.querySelectorAll('.reviewQuestion').forEach(q=>{
-    q.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{
+  $("questions").querySelectorAll('.reviewQuestion').forEach(q=>{
+    q.querySelectorAll('[data-s]').forEach(b=>b.onclick=function(e){
+      e.preventDefault();
+      e.stopPropagation();
       const item=selected.submission.answers.find(a=>a.i===+q.dataset.q);
       if(!item)return;
       item.status=b.dataset.s;
-      // Preserve the current question position. Re-rendering must never jump
-      // back to question #1 after a Correct/Wrong decision.
-      const targetIndex=+q.dataset.q;
-      drawReview(targetIndex);
+      const keepIndex=+q.dataset.q;
+      drawReview(keepIndex);
     });
   });
 
   $("reviewCard").classList.remove('hidden');
 
   if(focusIndex!==null){
-    const target=document.querySelector('.reviewQuestion[data-q="'+focusIndex+'"]');
+    const target=$("questions").querySelector('.reviewQuestion[data-q="'+focusIndex+'"]');
     if(target){
-      target.classList.add('flashTarget');
-      target.scrollIntoView({behavior:'auto',block:'center'});
-      setTimeout(()=>target.classList.remove('flashTarget'),650);
+      requestAnimationFrame(()=>{
+        target.scrollIntoView({behavior:'auto',block:'center',inline:'nearest'});
+        target.classList.add('flashTarget');
+        setTimeout(()=>target.classList.remove('flashTarget'),500);
+      });
     }
   }
 }
+
 async function voidRow(id){const row=allRows.find(r=>r.id===id&&!['voided'].includes(String(r.status||'').toLowerCase()));if(!row)return;if(!confirm('Void this worksheet? It will not count toward progress.'))return;const reason=prompt('Optional reason:','Voided by parent')||'Voided by parent';try{await KMT.voidWorksheet(id,reason);if(selected?.id===id){selected=null;$("reviewCard").classList.add('hidden')}await load()}catch(e){alert(e.message||'Unable to void worksheet.')}}
 async function deleteStudent(){
   const sel=$("deleteStudentSelect"),id=sel?.value;
@@ -253,8 +388,8 @@ async function deleteStudent(){
 }
 $("deleteStudentSelect")?.addEventListener("change",()=>{ $("deleteStudentBtn").disabled=!$("deleteStudentSelect").value; });
 $("deleteStudentBtn")?.addEventListener("click",deleteStudent);
-$("save").onclick=async()=>{if(!selected)return;const answers=selected.submission.answers||[];const isEnglish=String(selected.operation||'').toLowerCase().includes('english');if(isEnglish&&answers.some(a=>a.status==='pending')){alert('Please mark every English answer as Correct, Wrong, or Not Answered before saving.');return;}answers.forEach(a=>{if(!['correct','wrong','not_answered'].includes(a.status))a.status=a.filled?'correct':'not_answered'});const b=$("save");b.disabled=true;b.textContent='Saving…';try{await KMT.reviewed(selected.id,answers,{userId:selected.user_id,userName:selected.user_name,date:new Date(selected.submitted_at).toISOString().slice(0,10),elapsed:selected.elapsed||0,operation:selected.operation,range:selected.range});selected=null;$("reviewCard").classList.add('hidden');await load()}catch(e){alert(e.message||'Unable to save review.')}finally{b.disabled=false;b.textContent='✓ Save Review'}};
-$("close").onclick=()=>{$("reviewCard").classList.add('hidden');selected=null};$("refresh").onclick=load;guard();
+$("save").onclick=async()=>{if(!selected)return;const answers=selected.submission.answers||[];const isEnglish=String(selected.operation||'').toLowerCase().includes('english');if(isEnglish&&answers.some(a=>a.status==='pending')){alert('Please mark every English answer as Correct, Wrong, or Not Answered before saving.');return;}answers.forEach(a=>{if(!['correct','wrong','not_answered'].includes(a.status))a.status=a.filled?'correct':'not_answered'});const b=$("save");b.disabled=true;b.textContent='Saving…';try{await KMT.reviewed(selected.id,answers,{userId:selected.user_id,userName:selected.user_name,date:new Date(selected.submitted_at).toISOString().slice(0,10),elapsed:selected.elapsed||0,operation:selected.operation,range:selected.range});selected=null;$("reviewCard").classList.add("hidden");document.body.classList.remove("review-open");await load()}catch(e){alert(e.message||'Unable to save review.')}finally{b.disabled=false;b.textContent='✓ Save Review'}};
+$("close").onclick=()=>{$("reviewCard").classList.add("hidden");document.body.classList.remove("review-open");selected=null};$("refresh").onclick=load;guard();
 })();
 </script>
 </body></html>
