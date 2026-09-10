@@ -148,6 +148,8 @@ body.review-open{overflow:hidden!important}
   #reviewCard:not(.hidden){inset:7px!important;max-height:calc(100vh - 14px)!important}
   #questions{height:calc(100vh - 145px)!important}
 }
+
+.hostedBy{color:#7b8797;text-decoration:none;font-weight:700}.hostedBy:hover{text-decoration:underline;color:#2563eb}.hostedBy:focus-visible{outline:2px solid #2563eb;outline-offset:3px;border-radius:4px}
 </style>
 <script>
 // Production 3.9.2 — stop accidental long-press text selection/copy on the UI.
@@ -173,7 +175,7 @@ document.addEventListener('selectstart',function(e){
 <div id="adminParentList" style="margin-top:14px"></div>
 </section>
 <section id="reviewCard" class="card hidden"><div class="reviewTop"><div><div style="font-size:20px;font-weight:900">📝 Review Worksheet</div><div id="reviewMeta" class="muted"></div></div><div class="actions"><button id="save" class="btn primary">✓ Save Review</button><button id="close" class="btn">Close</button></div></div><div id="questions"></div></section>
-<div class="footer">Production 3.9.2 • Supabase Cloud</div></div>
+<div class="footer">Hosted by <a class="hostedBy" href="https://www.linkedin.com/in/sdon1985/" target="_blank" rel="noopener noreferrer">Sandeep Dondeti</a></div></div>
 <script>
 (function(){
 let selected=null,allRows=[];const $=id=>document.getElementById(id);const esc=v=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
